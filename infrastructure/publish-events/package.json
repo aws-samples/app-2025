@@ -1,0 +1,8 @@
+{
+  "name": "publish-events",
+  "version": "0.1.0",
+  "description": "Publish events onto a given Amazon EventBridge event bus",
+  "main": "app.js",
+  "author": "SAM CLI",
+  "license": "MIT-0"
+}

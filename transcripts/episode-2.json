@@ -1,0 +1,2049 @@
+{
+  "name": "App 2025: Express Workflows for quick-running processes",
+  "messages": [
+    {
+      "text": "all right go Time by everybody",
+      "created_at": "2020-04-16T18:00:08.442Z"
+    },
+    {
+      "text": "welcome to out 20-25 this is up",
+      "created_at": "2020-04-16T18:00:12.302Z"
+    },
+    {
+      "text": "I'm Rob your host",
+      "created_at": "2020-04-16T18:00:15.305Z"
+    },
+    {
+      "text": "sure that my microphone is not working again",
+      "created_at": "2020-04-16T18:00:18.237Z"
+    },
+    {
+      "text": "okay so if you got the closed captions turned on you to see all that hi everybody Welcome episode 2 of app 20-25 apparently I still don't know how to work the mute button on my microphone today we are going to cover a new step in our app for any company and that's Express workflows for quick running processes AWS step functions Express workflows and this should be the default in your new architecture so even if you have a business process that right now is one Lambda function when AWS Lambda functions you should consider wrapping that in an Express workflow and I'll explain why that gives you a little more functionality as that process grows so rather than having that fragility and the temptation to go insert some of your business logic into your Lambda function you can continue to refine that work flow with your business analyst",
+      "created_at": "2020-04-16T18:01:18.224Z"
+    },
+    {
+      "text": "Surplus office hours with AWS step functions",
+      "created_at": "2020-04-16T18:01:22.395Z"
+    },
+    {
+      "text": "last Channel those are also available with links in the",
+      "created_at": "2020-04-16T18:01:26.327Z"
+    },
+    {
+      "text": "So today we're going to go back and review the architecture where we got to so far what we put up there we're going to introduce AWS step functions Express workflows will compare these with step function standard work clothes so that you can have a basis or a framework for deciding when to use which and which one is more beneficial for you I'm going to give you this Express workflow event Loop pattern that we sort of touched on on the first episode and we're going to talk about how to put the events back onto the event bus when you're done running your Express workflow",
+      "created_at": "2020-04-16T18:02:02.302Z"
+    },
+    {
+      "text": "area code using Sam's Eli and with one exception we have to build one Lambda function today but it's going to be sort of the universal one that gets reused",
+      "created_at": "2020-04-16T18:02:12.264Z"
+    },
+    {
+      "text": "we'll talk about that later and then of course with the Q\u0026A at the end Q\u0026A as we go ask whatever questions you have I'm just happy to be here I'm happy to have you with me so let's get started",
+      "created_at": "2020-04-16T18:02:22.505Z"
+    },
+    {
+      "text": "alright so if you remember last time we were talking about any company which is just a generic software as a service provider",
+      "created_at": "2020-04-16T18:02:31.239Z"
+    },
+    {
+      "text": "and we went through been ellerbee's event storming process to generate eventually some bounded context and three microservices customer operations and billing will return to this right now today we're going to work on building out this subscription expired process the business process",
+      "created_at": "2020-04-16T18:02:52.242Z"
+    },
+    {
+      "text": "like founding your company like a startup and then it's because it's an entire workflow you have the flexibility to iterate in the additional functionality and definition that you need later",
+      "created_at": "2020-04-16T18:03:04.291Z"
+    },
+    {
+      "text": "if we look at this architecture remember we talked about an Amazon event Bridge custom event but",
+      "created_at": "2020-04-16T18:03:10.243Z"
+    },
+    {
+      "text": "left to right through time",
+      "created_at": "2020-04-16T18:03:12.301Z"
+    },
+    {
+      "text": "events go onto the bus business events",
+      "created_at": "2020-04-16T18:03:14.281Z"
+    },
+    {
+      "text": "redefined and at that point a workflow or a business process or a number of them should pick them up and respond to them according to their own needs right so the bus and the producers don't have to know about Downstream consumers they just put the event on the bus and whoever's interested in it picks it up",
+      "created_at": "2020-04-16T18:03:34.263Z"
+    },
+    {
+      "text": "the general pattern that we're going to work up to is going to be to listen to that event via a rule running through workflow and put it the completed event back onto the bus it's that simple but it's powerful this is going to be just almost all of your application right so it's a very powerful workflow that we can build through",
+      "created_at": "2020-04-16T18:03:57.284Z"
+    },
+    {
+      "text": "now I promise we talked a little bit about the difference",
+      "created_at": "2020-04-16T18:04:01.317Z"
+    },
+    {
+      "text": "Queen Saturday classic workflows",
+      "created_at": "2020-04-16T18:04:05.339Z"
+    },
+    {
+      "text": "standard and express work clothes I always do that I could be so mad at me",
+      "created_at": "2020-04-16T18:04:09.281Z"
+    },
+    {
+      "text": "some links here in the chat Channel",
+      "created_at": "2020-04-16T18:04:12.288Z"
+    },
+    {
+      "text": "the first one is the launch blog for express workflows",
+      "created_at": "2020-04-16T18:04:16.340Z"
+    },
+    {
+      "text": "the second one is standard vs. Express work clothes if you click on that one I'm going to bring this down",
+      "created_at": "2020-04-16T18:04:23.413Z"
+    },
+    {
+      "text": "praying for you look at this",
+      "created_at": "2020-04-16T18:04:26.235Z"
+    },
+    {
+      "text": "is a couple key areas that I want to highlight for you",
+      "created_at": "2020-04-16T18:04:29.266Z"
+    },
+    {
+      "text": "probably the first one if you've been building a lot with standard workflows you know that they're very durable and they can run for up to a year that's a very powerful contract when you need it when you don't need it it just is more than you need right so that's one of the first differences is duration and express workflow will run for a maximum of five minutes before it times out",
+      "created_at": "2020-04-16T18:04:54.237Z"
+    },
+    {
+      "text": "that's what we see here on his first line for maximum duration",
+      "created_at": "2020-04-16T18:04:58.237Z"
+    },
+    {
+      "text": "what you're also going to see is the concurrency is wildly different on these right so out-of-the-box your default standard workflows can support a start rate of 2,000 work clothes per second res Express flows Express workflow Support over a hundred thousand per second",
+      "created_at": "2020-04-16T18:05:16.390Z"
+    },
+    {
+      "text": "as your business grows and you start getting",
+      "created_at": "2020-04-16T18:05:18.250Z"
+    },
+    {
+      "text": "Vince put on to the boss more rapidly you still got plenty of capacity to consume those and to kick off your workflows",
+      "created_at": "2020-04-16T18:05:26.463Z"
+    },
+    {
+      "text": "pricing is different and this is another one of the links that we put in the chat here you see AWS step functions pricing",
+      "created_at": "2020-04-16T18:05:34.311Z"
+    },
+    {
+      "text": "classic workflow",
+      "created_at": "2020-04-16T18:05:37.236Z"
+    },
+    {
+      "text": "standard workflows pricing is based on state transition so as you move through States",
+      "created_at": "2020-04-16T18:05:44.233Z"
+    },
+    {
+      "text": "workflow the Express workflows pricing is much more similar to AWS Lambda it's based on the number of executions you run and their duration so it's a it's like a sum of gigabytes seconds and that is a declining price for gigabyte seconds that's the same measure that we use for AWS Lambda functions as well so it should be pretty familiar so you pay $1 per million requests",
+      "created_at": "2020-04-16T18:06:15.272Z"
+    },
+    {
+      "text": "6 cents per gigabyte hour for the first thousand gigabyte gigabyte hour is 1000",
+      "created_at": "2020-04-16T18:06:24.272Z"
+    },
+    {
+      "text": "one hour of 1GB of allocation and that allocation is flexible your workflow takes however much it needs and will see an example of that in the locks that's in increments of 64 megabytes and then an hour's an hour right but that's split up just like AWS Lambda functions are today in two increments of 100 milliseconds",
+      "created_at": "2020-04-16T18:06:45.282Z"
+    },
+    {
+      "text": "yeah",
+      "created_at": "2020-04-16T18:06:48.232Z"
+    },
+    {
+      "text": "geek is right I'm just going to send it",
+      "created_at": "2020-04-16T18:06:50.329Z"
+    },
+    {
+      "text": "song saying over and over but I will always crack myself that is my solemn promise to you",
+      "created_at": "2020-04-16T18:06:55.274Z"
+    },
+    {
+      "text": "execution history as well so if you saw us for the launch of the AWS step-function support in the state of your stool pay for visual studio code you see that we brought visualization from the console into that extension that's really powerful for Express work clothes because the AWS Management console by default doesn't provide this you can still track your work clothes and how they're executed by enabling logging will go to that later today I'll give you more later in this session I'll give you an example of how to configure that in the code for configuring that along with the permissions when you also see one of the links that we pay sit in the chat here step functions logs gives you the required IAM permissions that you're going to need to enable for called watch logs on Express workflows",
+      "created_at": "2020-04-16T18:07:47.335Z"
+    },
+    {
+      "text": "another key one if you saw episode on",
+      "created_at": "2020-04-16T18:07:51.273Z"
+    },
+    {
+      "text": "on step functions on Tuesday this week we went specifically over service integration that we talked about the three service integration patterns request response run a job which of the. Sink or it's our job Ron with his. Sink and call back which is not wait for task token patterns Express work clothes don't support those two last patterns only standard were closed support those two patterns so that's the key difference in general what does it mean for you right if you're building your application and you're looking at your business process and you need to know okay which one of these do I pick",
+      "created_at": "2020-04-16T18:08:29.317Z"
+    },
+    {
+      "text": "General out suggesting you start with expressworks loss and say this is how I'm going to build this and then you look for reasons why you have to move off of it okay so let's say you have a manual step in there where you dispatch an approval email to you know a director-level manager that has to wait for a call back and that could take obviously longer than 5 minutes well Express work clothes are no longer going to suit your use case if you need to use that call back pattern not necessarily for people but for other service in Vacations or if you want to run synchronous jobs like AWS batch AWS glue",
+      "created_at": "2020-04-16T18:09:10.239Z"
+    },
+    {
+      "text": "I'll be a good use case for you to run Express work clothes but when you start out of the box I would suggest that you just say okay all my work clothes now or Express work clothes until proven otherwise because you're going to get the benefits of increased concurrency you're going to get the benefits of generally lower pricing at the volumes and you know it's a good way of just getting in getting that pattern set",
+      "created_at": "2020-04-16T18:09:37.242Z"
+    },
+    {
+      "text": "I'm just going to keep driving on",
+      "created_at": "2020-04-16T18:09:40.311Z"
+    },
+    {
+      "text": "alright so let me go back to this pattern real quick",
+      "created_at": "2020-04-16T18:09:48.256Z"
+    },
+    {
+      "text": "the way that we get",
+      "created_at": "2020-04-16T18:09:50.305Z"
+    },
+    {
+      "text": "is via event Bridges",
+      "created_at": "2020-04-16T18:09:54.245Z"
+    },
+    {
+      "text": "and let me pull up an AWS console AWS Management console window for us here",
+      "created_at": "2020-04-16T18:10:02.492Z"
+    },
+    {
+      "text": "I love it when it log me out",
+      "created_at": "2020-04-16T18:10:07.245Z"
+    },
+    {
+      "text": "and then you get to jump back in there you know what I mean for weed that are flexible we overcome",
+      "created_at": "2020-04-16T18:10:14.380Z"
+    },
+    {
+      "text": "listen here",
+      "created_at": "2020-04-16T18:10:16.493Z"
+    },
+    {
+      "text": "blow it up a little",
+      "created_at": "2020-04-16T18:10:18.303Z"
+    },
+    {
+      "text": "hopefully this time in the right window",
+      "created_at": "2020-04-16T18:10:21.277Z"
+    },
+    {
+      "text": "okay",
+      "created_at": "2020-04-16T18:10:24.271Z"
+    },
+    {
+      "text": "so if you remember last time we can also go into vs code and look here",
+      "created_at": "2020-04-16T18:10:29.269Z"
+    },
+    {
+      "text": "we had built a couple of like we serviced skeleton doubt are microservices",
+      "created_at": "2020-04-16T18:10:35.382Z"
+    },
+    {
+      "text": "an event bus",
+      "created_at": "2020-04-16T18:10:38.505Z"
+    },
+    {
+      "text": "a sample and all we did was named it event bus and then capture its location in this SSM parameter to use for later so if we look at this back in the AWS Management console we've got our event buses and we have our custom eventbus for any company",
+      "created_at": "2020-04-16T18:10:55.307Z"
+    },
+    {
+      "text": "so this point up.",
+      "created_at": "2020-04-16T18:10:58.303Z"
+    },
+    {
+      "text": "schema Discovery enabled on here we can we'll talk about that at the end of this",
+      "created_at": "2020-04-16T18:11:02.250Z"
+    },
+    {
+      "text": "time if not we'll talk about it in a separate session dedicated to this",
+      "created_at": "2020-04-16T18:11:07.341Z"
+    },
+    {
+      "text": "but we got rules",
+      "created_at": "2020-04-16T18:11:09.242Z"
+    },
+    {
+      "text": "and at this point we don't have any rules on our account a rule is just matching an event and invoking a Target so that's the first thing that we need to do to get going to do this we're going to go back into vs code",
+      "created_at": "2020-04-16T18:11:27.242Z"
+    },
+    {
+      "text": "and I'm going to drag this is a little crazy to make sense later I'm going to move this function out of here into the event bus",
+      "created_at": "2020-04-16T18:11:37.430Z"
+    },
+    {
+      "text": "remove the events folder along with it",
+      "created_at": "2020-04-16T18:11:41.372Z"
+    },
+    {
+      "text": "so that when we're working here inside our cut",
+      "created_at": "2020-04-16T18:11:45.275Z"
+    },
+    {
+      "text": "micro service all we have right now is a Sam template",
+      "created_at": "2020-04-16T18:11:49.352Z"
+    },
+    {
+      "text": "so it's clean this up a little bit we no longer have",
+      "created_at": "2020-04-16T18:11:53.312Z"
+    },
+    {
+      "text": "the functions we no longer have glow bowls",
+      "created_at": "2020-04-16T18:11:58.264Z"
+    },
+    {
+      "text": "the facts are no longer have outputs in fact we no longer have much of anything at all",
+      "created_at": "2020-04-16T18:12:02.242Z"
+    },
+    {
+      "text": "so the first thing we want to do",
+      "created_at": "2020-04-16T18:12:08.248Z"
+    },
+    {
+      "text": "create a rule in this rule",
+      "created_at": "2020-04-16T18:12:11.388Z"
+    },
+    {
+      "text": "sure if it's in the yeah it is good cloudwatch events rule this is the vs code extension for cloudwatch so it's an AWS events rule we're going to name this expired subscription rule because remember we said back in our diagram we're working in this customer relations bounded context to handle Subs expired subscriptions",
+      "created_at": "2020-04-16T18:12:37.243Z"
+    },
+    {
+      "text": "so let me just do some cleanup here make sure we don't have any questions okay good now what do we need in your properties description is optional but let's grab one",
+      "created_at": "2020-04-16T18:12:52.240Z"
+    },
+    {
+      "text": "looks like Eric Johnson was on just a little bit before me I was up late working on this so I'm I'm going to steal some code as we go",
+      "created_at": "2020-04-16T18:12:59.303Z"
+    },
+    {
+      "text": "from myself last night today me is very happy with last night me right now for running all this ahead of time",
+      "created_at": "2020-04-16T18:13:05.324Z"
+    },
+    {
+      "text": "we're going to give ourselves a little parameter here",
+      "created_at": "2020-04-16T18:13:09.249Z"
+    },
+    {
+      "text": "to make things easier on ourselves that we have some logical references will call it eventbus name give it a default this is just a standard cloudwatch parameter we give it the default of any company to match but it also lets us listen to things further down here",
+      "created_at": "2020-04-16T18:13:25.421Z"
+    },
+    {
+      "text": "eventbus name",
+      "created_at": "2020-04-16T18:13:29.249Z"
+    },
+    {
+      "text": "that's supposed to reference",
+      "created_at": "2020-04-16T18:13:31.448Z"
+    },
+    {
+      "text": "in this case rather than pull it from the SSM parameter that creates it's just beyond the scope of what we",
+      "created_at": "2020-04-16T18:13:41.361Z"
+    },
+    {
+      "text": "right now but you can insert this here",
+      "created_at": "2020-04-16T18:13:43.282Z"
+    },
+    {
+      "text": "in your pipeline whenever you're deploying by",
+      "created_at": "2020-04-16T18:13:46.266Z"
+    },
+    {
+      "text": "any value there for today we're going to be hard coating a lot of things that aren't relevant",
+      "created_at": "2020-04-16T18:13:50.256Z"
+    },
+    {
+      "text": "to express work clothes in particular but first we got to learn how to kick this off so we have a source",
+      "created_at": "2020-04-16T18:13:58.297Z"
+    },
+    {
+      "text": "this is just a top-level field in an event and if I can show you a custom event can look like anything it can be any Json object right so we're going to have Source in here as calm. Any company",
+      "created_at": "2020-04-16T18:14:13.294Z"
+    },
+    {
+      "text": "and you can have things like detail type",
+      "created_at": "2020-04-16T18:14:19.339Z"
+    },
+    {
+      "text": "anything you want there are standard formats for AWS provided events those schemes are available in the event Bridge documentation which are here again in those linked but for your event you put whatever you want in there and you refer to it however you want sonar case we're going to grab anything that comes from our our company app here and detail type",
+      "created_at": "2020-04-16T18:14:45.258Z"
+    },
+    {
+      "text": "4 Subs",
+      "created_at": "2020-04-16T18:14:49.423Z"
+    },
+    {
+      "text": "expired events",
+      "created_at": "2020-04-16T18:14:52.246Z"
+    },
+    {
+      "text": "and all this means when I go back over to this event is it's going to come in looking like this",
+      "created_at": "2020-04-16T18:14:56.263Z"
+    },
+    {
+      "text": "that's it. We got to do okay now and you'll see I got some sample of insulator that won't match this will have some that come in from another source they don't get handled will have some that match a different type of event they don't get a handle but any event that comes in that matches these this pattern that were specifying here will trigger our Target until we're not going to deal with the detail field right now",
+      "created_at": "2020-04-16T18:15:29.295Z"
+    },
+    {
+      "text": "Eric knows that I like to stay",
+      "created_at": "2020-04-16T18:15:32.246Z"
+    },
+    {
+      "text": "alright so far Target",
+      "created_at": "2020-04-16T18:15:37.276Z"
+    },
+    {
+      "text": "we're going to have to give it the AR end of a workflow",
+      "created_at": "2020-04-16T18:15:41.357Z"
+    },
+    {
+      "text": "ID for the rule itself",
+      "created_at": "2020-04-16T18:15:45.266Z"
+    },
+    {
+      "text": "aarn which is the role that the rule runs as though it's the",
+      "created_at": "2020-04-16T18:15:51.268Z"
+    },
+    {
+      "text": "are workflow pause right here for a second",
+      "created_at": "2020-04-16T18:15:56.242Z"
+    },
+    {
+      "text": "create a workflow it's going to need its own role and",
+      "created_at": "2020-04-16T18:16:00.260Z"
+    },
+    {
+      "text": "we're going to need to create a role for the",
+      "created_at": "2020-04-16T18:16:04.339Z"
+    },
+    {
+      "text": "Okay so",
+      "created_at": "2020-04-16T18:16:07.422Z"
+    },
+    {
+      "text": "Wallace stops getting complicated right that's okay we can handle this",
+      "created_at": "2020-04-16T18:16:11.316Z"
+    },
+    {
+      "text": "we need a workflow so let's call it expire",
+      "created_at": "2020-04-16T18:16:16.403Z"
+    },
+    {
+      "text": "prescription workflow",
+      "created_at": "2020-04-16T18:16:18.257Z"
+    },
+    {
+      "text": "come back to that",
+      "created_at": "2020-04-16T18:16:21.255Z"
+    },
+    {
+      "text": "we know that we need",
+      "created_at": "2020-04-16T18:16:23.276Z"
+    },
+    {
+      "text": "a role for that so let's call it expired subscription roll",
+      "created_at": "2020-04-16T18:16:31.350Z"
+    },
+    {
+      "text": "and then we know that we need an invoke",
+      "created_at": "2020-04-16T18:16:35.450Z"
+    },
+    {
+      "text": "right",
+      "created_at": "2020-04-16T18:16:40.268Z"
+    },
+    {
+      "text": "so as we build these out we're going to be able to pick up",
+      "created_at": "2020-04-16T18:16:45.248Z"
+    },
+    {
+      "text": "the events coming across",
+      "created_at": "2020-04-16T18:16:49.420Z"
+    },
+    {
+      "text": "bus that match that pattern that we Define",
+      "created_at": "2020-04-16T18:16:52.247Z"
+    },
+    {
+      "text": "Serena build he's out now",
+      "created_at": "2020-04-16T18:16:55.279Z"
+    },
+    {
+      "text": "we know from previously that we can use the AWS",
+      "created_at": "2020-04-16T18:17:03.250Z"
+    },
+    {
+      "text": "we're going for here",
+      "created_at": "2020-04-16T18:17:07.428Z"
+    },
+    {
+      "text": "step function State machine",
+      "created_at": "2020-04-16T18:17:10.416Z"
+    },
+    {
+      "text": "Hazard type",
+      "created_at": "2020-04-16T18:17:16.253Z"
+    },
+    {
+      "text": "go ahead and cheat",
+      "created_at": "2020-04-16T18:17:20.242Z"
+    },
+    {
+      "text": "pulis in cuz that's going to be a lot more effective than me type",
+      "created_at": "2020-04-16T18:17:24.256Z"
+    },
+    {
+      "text": "I'm going to look at what we built",
+      "created_at": "2020-04-16T18:17:28.527Z"
+    },
+    {
+      "text": "we need to change this definition here in a second",
+      "created_at": "2020-04-16T18:17:33.251Z"
+    },
+    {
+      "text": "start with this so the only difference between this and a standard workflow",
+      "created_at": "2020-04-16T18:17:39.251Z"
+    },
+    {
+      "text": "is the state machine type Express",
+      "created_at": "2020-04-16T18:17:43.273Z"
+    },
+    {
+      "text": "Miss logging configuration that we talked about earlier I want to pull that out cuz it can come",
+      "created_at": "2020-04-16T18:17:46.272Z"
+    },
+    {
+      "text": "thanks",
+      "created_at": "2020-04-16T18:17:49.426Z"
+    },
+    {
+      "text": "at this point",
+      "created_at": "2020-04-16T18:17:52.346Z"
+    },
+    {
+      "text": "here's what we have we have a public events function that we're going to get to in the ends with pull that out as well",
+      "created_at": "2020-04-16T18:17:59.442Z"
+    },
+    {
+      "text": "we can take this down",
+      "created_at": "2020-04-16T18:18:07.287Z"
+    },
+    {
+      "text": "Aesop for y'all",
+      "created_at": "2020-04-16T18:18:12.250Z"
+    },
+    {
+      "text": "bring it back to look like that in a minute",
+      "created_at": "2020-04-16T18:18:14.250Z"
+    },
+    {
+      "text": "so if you want to know where all the stuff is going to live there's a repo link there in the chat for you",
+      "created_at": "2020-04-16T18:18:24.253Z"
+    },
+    {
+      "text": "I'll clean this up and push it up for afterwards",
+      "created_at": "2020-04-16T18:18:29.259Z"
+    },
+    {
+      "text": "starting again with this basic stuff",
+      "created_at": "2020-04-16T18:18:32.302Z"
+    },
+    {
+      "text": "State machine configuration we give it a name we need to provide this role still so let's build that this is the difference between a standard and express workflows estate machine type",
+      "created_at": "2020-04-16T18:18:44.284Z"
+    },
+    {
+      "text": "give it a definition string",
+      "created_at": "2020-04-16T18:18:46.398Z"
+    },
+    {
+      "text": "at this point",
+      "created_at": "2020-04-16T18:18:49.401Z"
+    },
+    {
+      "text": "I didn't need to be a sub and I deleted the wrong things so let's see",
+      "created_at": "2020-04-16T18:18:56.257Z"
+    },
+    {
+      "text": "all right",
+      "created_at": "2020-04-16T18:19:02.266Z"
+    },
+    {
+      "text": "let's see what happens",
+      "created_at": "2020-04-16T18:19:04.386Z"
+    },
+    {
+      "text": "let's see what happens next",
+      "created_at": "2020-04-16T18:19:06.693Z"
+    },
+    {
+      "text": "let me need to provide a role for this as well",
+      "created_at": "2020-04-16T18:19:10.257Z"
+    },
+    {
+      "text": "I got to tell you as I built",
+      "created_at": "2020-04-16T18:19:12.259Z"
+    },
+    {
+      "text": "I didn't sit down and write all of these last night you know what I mean like you got to build up a library for yourself or the you do it and get help with just where do you pull from your previous projects you got to build up a library this this stuff is complex right so you see this role that we just dropped in here this we have to have it has to be able to assume the role this is all related to logging so we can skip this for now take that out and bring it back later",
+      "created_at": "2020-04-16T18:19:45.255Z"
+    },
+    {
+      "text": "we still have to have a roll right",
+      "created_at": "2020-04-16T18:19:50.526Z"
+    },
+    {
+      "text": "and then we have the invoke workflow roll",
+      "created_at": "2020-04-16T18:19:55.253Z"
+    },
+    {
+      "text": "so",
+      "created_at": "2020-04-16T18:19:57.251Z"
+    },
+    {
+      "text": "I'm actually going to comment some more things out here think I got a little bit out of order on y'all",
+      "created_at": "2020-04-16T18:20:03.256Z"
+    },
+    {
+      "text": "I'm coming out this Rule and just get down to the simplest thing we have",
+      "created_at": "2020-04-16T18:20:09.251Z"
+    },
+    {
+      "text": "which is an Express workflow no logging configuration a single Pass State and then it's required roll right",
+      "created_at": "2020-04-16T18:20:18.262Z"
+    },
+    {
+      "text": "so let's check here in the customer service",
+      "created_at": "2020-04-16T18:20:24.256Z"
+    },
+    {
+      "text": "I got her a w s profile set says it's invalid template will see",
+      "created_at": "2020-04-16T18:20:34.630Z"
+    },
+    {
+      "text": "you're Sam deploy guided 20-25 customer",
+      "created_at": "2020-04-16T18:20:42.259Z"
+    },
+    {
+      "text": "for USC's to Ferry Ohio keep that default value keep all the defaults for the rest of this",
+      "created_at": "2020-04-16T18:20:50.339Z"
+    },
+    {
+      "text": "and then we'll see where this goes we can go back into the console",
+      "created_at": "2020-04-16T18:20:55.340Z"
+    },
+    {
+      "text": "once it's done",
+      "created_at": "2020-04-16T18:20:58.270Z"
+    },
+    {
+      "text": "I got to tell you all last night I was going back and forth on the the IAM permissions in the policy to set up logging for the express workflows and it was beat my head against the wall for a little while and it was 100% my own fault because ultimately after a long time I went back and I read the actual documents",
+      "created_at": "2020-04-16T18:21:21.257Z"
+    },
+    {
+      "text": "weather",
+      "created_at": "2020-04-16T18:21:25.271Z"
+    },
+    {
+      "text": "right there with what I need",
+      "created_at": "2020-04-16T18:21:26.411Z"
+    },
+    {
+      "text": "value property definition string yeah so it doesn't like that modification that I made Let's",
+      "created_at": "2020-04-16T18:21:34.579Z"
+    },
+    {
+      "text": "husband definition string real quick",
+      "created_at": "2020-04-16T18:21:38.465Z"
+    },
+    {
+      "text": "give me the second to clean this up you all",
+      "created_at": "2020-04-16T18:21:43.429Z"
+    },
+    {
+      "text": "it's like that magic incantation that I can never quite get right",
+      "created_at": "2020-04-16T18:21:51.252Z"
+    },
+    {
+      "text": "that let's try this again",
+      "created_at": "2020-04-16T18:21:58.253Z"
+    },
+    {
+      "text": "you don't need the guy that anymore I've already saved everything",
+      "created_at": "2020-04-16T18:22:07.258Z"
+    },
+    {
+      "text": "yeah he's all done this",
+      "created_at": "2020-04-16T18:22:16.263Z"
+    },
+    {
+      "text": "if you",
+      "created_at": "2020-04-16T18:22:19.286Z"
+    },
+    {
+      "text": "Treatise talking on the first time it doesn't go you have to delete that stack cloudformation",
+      "created_at": "2020-04-16T18:22:25.337Z"
+    },
+    {
+      "text": "now we can see what happens here",
+      "created_at": "2020-04-16T18:22:30.255Z"
+    },
+    {
+      "text": "but yeah always read the docs even when you think you know what you're doing that's when I get to write that pride of thinking of put this in place before it's fine everything's fine",
+      "created_at": "2020-04-16T18:22:44.435Z"
+    },
+    {
+      "text": "narrator it was not fine",
+      "created_at": "2020-04-16T18:22:48.253Z"
+    },
+    {
+      "text": "and then we read the docks the docks get us there and we'll be alright",
+      "created_at": "2020-04-16T18:22:53.445Z"
+    },
+    {
+      "text": "okay erase successfully created updated stock",
+      "created_at": "2020-04-16T18:22:59.365Z"
+    },
+    {
+      "text": "I want to show this to you real quick in the console",
+      "created_at": "2020-04-16T18:23:03.260Z"
+    },
+    {
+      "text": "cover here to step functions",
+      "created_at": "2020-04-16T18:23:07.358Z"
+    },
+    {
+      "text": "we got this and you see this looks a little different",
+      "created_at": "2020-04-16T18:23:11.356Z"
+    },
+    {
+      "text": "it's a type Express who don't have a visualization here that we had before",
+      "created_at": "2020-04-16T18:23:17.264Z"
+    },
+    {
+      "text": "like I mentioned earlier that means ultimately we're going to have to get logging turned on sorry we do have this visualization it's over here what you won't get is a visualization of the execution where you walk through at each state getting your your green States so we still have the visualization that we expect but not during execution",
+      "created_at": "2020-04-16T18:23:36.257Z"
+    },
+    {
+      "text": "so we have it here we can start an execution it won't really tell us anything because we hadn't turned logging on but it helpfully does tell us to see the execution status in history enable logging on your state machine",
+      "created_at": "2020-04-16T18:23:49.340Z"
+    },
+    {
+      "text": "so",
+      "created_at": "2020-04-16T18:23:53.283Z"
+    },
+    {
+      "text": "a few things that we need to do here we've got that in there we need to enable logging we need to finish the rule we need to change the rules so that it can invoke the workflow we need to finish the state machine",
+      "created_at": "2020-04-16T18:24:08.275Z"
+    },
+    {
+      "text": "logging configuration first so I'm going to mark this here for logging configuration",
+      "created_at": "2020-04-16T18:24:15.265Z"
+    },
+    {
+      "text": "enable logs for your Express workflows",
+      "created_at": "2020-04-16T18:24:19.393Z"
+    },
+    {
+      "text": "there's this highlighted block here that's a logging configuration block this is documented",
+      "created_at": "2020-04-16T18:24:27.267Z"
+    },
+    {
+      "text": "the",
+      "created_at": "2020-04-16T18:24:29.280Z"
+    },
+    {
+      "text": "Vlogs link that I gave you over there school unhighlight that",
+      "created_at": "2020-04-16T18:24:34.282Z"
+    },
+    {
+      "text": "it won't work right now because you don't have permissions to write out to these",
+      "created_at": "2020-04-16T18:24:39.264Z"
+    },
+    {
+      "text": "permissions need to come into our role here so we're going to add a policy.",
+      "created_at": "2020-04-16T18:24:43.414Z"
+    },
+    {
+      "text": "this is the part where I told you I had to learn how to read again last night",
+      "created_at": "2020-04-16T18:24:48.254Z"
+    },
+    {
+      "text": "cuz I'm hard-headed",
+      "created_at": "2020-04-16T18:24:52.430Z"
+    },
+    {
+      "text": "let's get to hear we need to we need to give it a law group to so let's do that first we have to have somewhere to log",
+      "created_at": "2020-04-16T18:25:01.257Z"
+    },
+    {
+      "text": "so step one",
+      "created_at": "2020-04-16T18:25:05.293Z"
+    },
+    {
+      "text": "configuration here we told her we're going to write to this Law Group so we need to create that Law Group",
+      "created_at": "2020-04-16T18:25:12.269Z"
+    },
+    {
+      "text": "receta retention to be 7 days so that they'll age out at optional",
+      "created_at": "2020-04-16T18:25:20.279Z"
+    },
+    {
+      "text": "and now we need to create the necessary policies",
+      "created_at": "2020-04-16T18:25:24.259Z"
+    },
+    {
+      "text": "go back over here",
+      "created_at": "2020-04-16T18:25:28.344Z"
+    },
+    {
+      "text": "to you",
+      "created_at": "2020-04-16T18:25:30.335Z"
+    },
+    {
+      "text": "by bringing this logs page down here",
+      "created_at": "2020-04-16T18:25:35.350Z"
+    },
+    {
+      "text": "Scott handy little configuring login and even a handy little IAM policies for login to cloudwatch logs which might look like the exact thing that I needed last night",
+      "created_at": "2020-04-16T18:25:43.376Z"
+    },
+    {
+      "text": "so we can bring that in",
+      "created_at": "2020-04-16T18:25:47.298Z"
+    },
+    {
+      "text": "as policy",
+      "created_at": "2020-04-16T18:25:52.585Z"
+    },
+    {
+      "text": "and it will look like this",
+      "created_at": "2020-04-16T18:25:56.340Z"
+    },
+    {
+      "text": "okay",
+      "created_at": "2020-04-16T18:25:58.298Z"
+    },
+    {
+      "text": "there's a little bit of a difference here I'm like a super lockdown kind of person",
+      "created_at": "2020-04-16T18:26:06.265Z"
+    },
+    {
+      "text": "technically all of these will work with star but these allow you to limit your actions even further so we can only do them to our Law Group so that's what I've done here so the steps to get logging enabled I guess first will be to create the Law Group",
+      "created_at": "2020-04-16T18:26:23.251Z"
+    },
+    {
+      "text": "second create the logging configuration so that your workflow rights to that Law Group",
+      "created_at": "2020-04-16T18:26:29.424Z"
+    },
+    {
+      "text": "and third add this policy available from the box",
+      "created_at": "2020-04-16T18:26:36.379Z"
+    },
+    {
+      "text": "into",
+      "created_at": "2020-04-16T18:26:40.271Z"
+    },
+    {
+      "text": "your role and I need to get it I knew something didn't look right there this statement",
+      "created_at": "2020-04-16T18:26:48.255Z"
+    },
+    {
+      "text": "policies",
+      "created_at": "2020-04-16T18:26:52.549Z"
+    },
+    {
+      "text": "here we go",
+      "created_at": "2020-04-16T18:26:54.265Z"
+    },
+    {
+      "text": "it's better to me",
+      "created_at": "2020-04-16T18:26:57.259Z"
+    },
+    {
+      "text": "Okay so",
+      "created_at": "2020-04-16T18:27:01.257Z"
+    },
+    {
+      "text": "Sam the plug and see what happens here",
+      "created_at": "2020-04-16T18:27:03.285Z"
+    },
+    {
+      "text": "tell if it doesn't work on my chest like I'm going to throw everything in the air and go home cuz I fought with this",
+      "created_at": "2020-04-16T18:27:12.284Z"
+    },
+    {
+      "text": "kittens going to be fine because I read the docs",
+      "created_at": "2020-04-16T18:27:15.258Z"
+    },
+    {
+      "text": "so we see it's created our Law Group for us here it's modifying the role that are step function is running as",
+      "created_at": "2020-04-16T18:27:24.298Z"
+    },
+    {
+      "text": "he's got to wait for that",
+      "created_at": "2020-04-16T18:27:27.284Z"
+    },
+    {
+      "text": "so once this is done we'll do another execution so you can see how the login works there alright super update complete her AC when you read the docs",
+      "created_at": "2020-04-16T18:27:38.258Z"
+    },
+    {
+      "text": "alright so if we go back here and now we go back into our state machine we can see that logging is defined and we've turned on all and included our execution data",
+      "created_at": "2020-04-16T18:27:52.344Z"
+    },
+    {
+      "text": "I have this cloudwatch logs group over here",
+      "created_at": "2020-04-16T18:27:55.437Z"
+    },
+    {
+      "text": "so now we can start an execution in this time",
+      "created_at": "2020-04-16T18:27:59.519Z"
+    },
+    {
+      "text": "we see that we have",
+      "created_at": "2020-04-16T18:28:05.257Z"
+    },
+    {
+      "text": "exactly what we'd expect right execution started past a dinner past eight exited execution succeeded in in here you have some metadata around timestamps length of execution Etc right so you can understand how your workflow is executing",
+      "created_at": "2020-04-16T18:28:24.260Z"
+    },
+    {
+      "text": "all right",
+      "created_at": "2020-04-16T18:28:30.268Z"
+    },
+    {
+      "text": "so the catalogs enable",
+      "created_at": "2020-04-16T18:28:33.293Z"
+    },
+    {
+      "text": "now we want to go back",
+      "created_at": "2020-04-16T18:28:37.389Z"
+    },
+    {
+      "text": "was I shall I forget",
+      "created_at": "2020-04-16T18:28:43.271Z"
+    },
+    {
+      "text": "okay now we need to create a",
+      "created_at": "2020-04-16T18:28:46.259Z"
+    },
+    {
+      "text": "this gives us in a RN",
+      "created_at": "2020-04-16T18:28:50.255Z"
+    },
+    {
+      "text": "bright because it's a workflow so that's going to be what we invoke will give it a name but we still need to create a role which allows it to invoke the",
+      "created_at": "2020-04-16T18:29:01.297Z"
+    },
+    {
+      "text": "the express workflow now the good thing about this when I copy and paste this when it's going to be a lot shorter",
+      "created_at": "2020-04-16T18:29:08.463Z"
+    },
+    {
+      "text": "let's see here",
+      "created_at": "2020-04-16T18:29:16.260Z"
+    },
+    {
+      "text": "the service here isn't reason specific it's events. Amazon AWS in your assume role policy document",
+      "created_at": "2020-04-16T18:29:24.255Z"
+    },
+    {
+      "text": "give it a name you allow it to start execution with",
+      "created_at": "2020-04-16T18:29:30.256Z"
+    },
+    {
+      "text": "Starbucks La Citta very tightly limited policy that were creating for this rule realistically you can move this back into your events bus",
+      "created_at": "2020-04-16T18:29:42.304Z"
+    },
+    {
+      "text": "account cuz remember we're talking about like an organization with multiple accounts",
+      "created_at": "2020-04-16T18:29:47.345Z"
+    },
+    {
+      "text": "and then just add workflows to this policy as you go that's a that's an organizational thing and how you structure your rules and doing it here so that we can see all the changes that we've made together but this is an IAM policy that's going to allow us to invoke our step functions workflow",
+      "created_at": "2020-04-16T18:30:07.260Z"
+    },
+    {
+      "text": "so now we can go back here and we can create a rule we can on comment all of this cuz we have everything we need right",
+      "created_at": "2020-04-16T18:30:14.263Z"
+    },
+    {
+      "text": "we went through before we gave it a name",
+      "created_at": "2020-04-16T18:30:22.399Z"
+    },
+    {
+      "text": "we assigned eventbus what is a custom event bus that we created last time in our event in the Json object we're going to filter for exact matches on these fields",
+      "created_at": "2020-04-16T18:30:33.314Z"
+    },
+    {
+      "text": "it's enabled",
+      "created_at": "2020-04-16T18:30:37.314Z"
+    },
+    {
+      "text": "I tried Miami this way",
+      "created_at": "2020-04-16T18:30:39.310Z"
+    },
+    {
+      "text": "we're going to use the expired subscription workflow",
+      "created_at": "2020-04-16T18:30:48.329Z"
+    },
+    {
+      "text": "write a review reference step functions workflow the Arna what's returned ID we got to give it a name will call it expired subscription workflow why not",
+      "created_at": "2020-04-16T18:30:59.372Z"
+    },
+    {
+      "text": "over here and then for the role",
+      "created_at": "2020-04-16T18:31:02.334Z"
+    },
+    {
+      "text": "is a little bit tricky",
+      "created_at": "2020-04-16T18:31:07.479Z"
+    },
+    {
+      "text": "we need to get the. AR in attribute",
+      "created_at": "2020-04-16T18:31:11.439Z"
+    },
+    {
+      "text": "on that roll okay",
+      "created_at": "2020-04-16T18:31:14.259Z"
+    },
+    {
+      "text": "this is not the same as they are in before so what this means this target block here you can have up to five Targets in a rule each Target specifies the AR end of the resource that it's going to invoke gives it a friendly name for you to see in the console and then gives it an IAM role a RN that it executes as",
+      "created_at": "2020-04-16T18:31:38.276Z"
+    },
+    {
+      "text": "so if we redeploy this",
+      "created_at": "2020-04-16T18:31:45.325Z"
+    },
+    {
+      "text": "looking over here no questions yet I know this is like a little bit esoteric so hopefully having the code to look at later is going to be the real value in this one the the example of having everything pulled together",
+      "created_at": "2020-04-16T18:32:01.532Z"
+    },
+    {
+      "text": "was wait for this so what this is doing",
+      "created_at": "2020-04-16T18:32:05.300Z"
+    },
+    {
+      "text": "is wiring up our event bus to look for any event that matches that pattern we gave them and then when it finds it to invoke are workflow so we'll see that be defined here",
+      "created_at": "2020-04-16T18:32:18.264Z"
+    },
+    {
+      "text": "and while it's doing that we can",
+      "created_at": "2020-04-16T18:32:27.286Z"
+    },
+    {
+      "text": "we're going to need to kick off",
+      "created_at": "2020-04-16T18:32:30.326Z"
+    },
+    {
+      "text": "the definition of a state machine",
+      "created_at": "2020-04-16T18:32:33.330Z"
+    },
+    {
+      "text": "the always fails from the first time I asked you to I need to",
+      "created_at": "2020-04-16T18:32:37.295Z"
+    },
+    {
+      "text": "settings all",
+      "created_at": "2020-04-16T18:32:40.343Z"
+    },
+    {
+      "text": "hi this is still going",
+      "created_at": "2020-04-16T18:32:44.417Z"
+    },
+    {
+      "text": "so we're going to use this",
+      "created_at": "2020-04-16T18:32:47.302Z"
+    },
+    {
+      "text": "Define our actual workflow",
+      "created_at": "2020-04-16T18:32:50.265Z"
+    },
+    {
+      "text": "I will start with a parallel state",
+      "created_at": "2020-04-16T18:32:55.267Z"
+    },
+    {
+      "text": "and Andrew the past 8",
+      "created_at": "2020-04-16T18:33:02.419Z"
+    },
+    {
+      "text": "what's the weather for simulating here remember we're talking about the business event or the business process process and expired subscription so you want to like for example we're going to say do two things at the same time one disable all the resources that that subscription owns but not necessarily delete and to email the customer right and then at the end you want to put the processing complete back onto the bus so we'll come back to this in just a second",
+      "created_at": "2020-04-16T18:33:39.339Z"
+    },
+    {
+      "text": "now we see that that deployed",
+      "created_at": "2020-04-16T18:33:46.341Z"
+    },
+    {
+      "text": "back to the event bus",
+      "created_at": "2020-04-16T18:33:50.269Z"
+    },
+    {
+      "text": "refresh",
+      "created_at": "2020-04-16T18:33:53.531Z"
+    },
+    {
+      "text": "and now we have this rule here right listening on the customer event bus for subscription expired events",
+      "created_at": "2020-04-16T18:34:00.266Z"
+    },
+    {
+      "text": "and we can go in here and we see the event pattern is what we would expect",
+      "created_at": "2020-04-16T18:34:07.346Z"
+    },
+    {
+      "text": "and we see the target is what we expect we got the state machine and a matched event right so let's go back here",
+      "created_at": "2020-04-16T18:34:17.273Z"
+    },
+    {
+      "text": "let me find my vents",
+      "created_at": "2020-04-16T18:34:22.396Z"
+    },
+    {
+      "text": "cuz I know you don't want to see me type Json objects",
+      "created_at": "2020-04-16T18:34:26.267Z"
+    },
+    {
+      "text": "what's open this up and hear in the root",
+      "created_at": "2020-04-16T18:34:31.269Z"
+    },
+    {
+      "text": "so these are just simple events and you notice that the event format everything gets converted into Pascal case which is the best case don't @me SRI sorry I just joined can you give a brief introduction of what we're doing today yeah welcome thanks for joining us we are hooking up Express work clothes from AWS step functions to our custom event bus to handle short running tasks of less than 5 minutes so we're showing how to create a rule that filters events and triggers a workflow and then at the end we'll put that workflow back on the bus",
+      "created_at": "2020-04-16T18:35:07.324Z"
+    },
+    {
+      "text": "what are events here there in Pascal case the best case",
+      "created_at": "2020-04-16T18:35:12.270Z"
+    },
+    {
+      "text": "we have some that match we have some that don't match",
+      "created_at": "2020-04-16T18:35:16.317Z"
+    },
+    {
+      "text": "there's some that match based on detail type we have some that don't match based on",
+      "created_at": "2020-04-16T18:35:21.355Z"
+    },
+    {
+      "text": "so we're actually going to have five events here and only two of these match what we're looking for",
+      "created_at": "2020-04-16T18:35:28.321Z"
+    },
+    {
+      "text": "we want to test this out we want to make sure",
+      "created_at": "2020-04-16T18:35:32.277Z"
+    },
+    {
+      "text": "what we're expecting to happen happens that is we put five events in here",
+      "created_at": "2020-04-16T18:35:39.335Z"
+    },
+    {
+      "text": "two of them get picked up by the rule and so we should see two step functions workflow execution",
+      "created_at": "2020-04-16T18:35:45.361Z"
+    },
+    {
+      "text": "sofa go back over here to cloudwatch",
+      "created_at": "2020-04-16T18:35:49.262Z"
+    },
+    {
+      "text": "and this log stream may not be the one that we get right this is we got one lockscreen for entries",
+      "created_at": "2020-04-16T18:35:56.425Z"
+    },
+    {
+      "text": "so come back over here and there's a there's a console command that you can use CLI command vixia life an AWS events put events",
+      "created_at": "2020-04-16T18:36:08.427Z"
+    },
+    {
+      "text": "and the entries",
+      "created_at": "2020-04-16T18:36:10.304Z"
+    },
+    {
+      "text": "Ruby this file",
+      "created_at": "2020-04-16T18:36:13.363Z"
+    },
+    {
+      "text": "just created that's not going to work because I'm in the customer folder there we go events",
+      "created_at": "2020-04-16T18:36:22.278Z"
+    },
+    {
+      "text": "entries file",
+      "created_at": "2020-04-16T18:36:25.274Z"
+    },
+    {
+      "text": "put events. Jason",
+      "created_at": "2020-04-16T18:36:27.276Z"
+    },
+    {
+      "text": "okay and then this will run that command it'll give us all right good 0 failed entries they all went in we put five events on the bus",
+      "created_at": "2020-04-16T18:36:36.341Z"
+    },
+    {
+      "text": "that's enough we go back over here",
+      "created_at": "2020-04-16T18:36:40.341Z"
+    },
+    {
+      "text": "Fry's we don't see that there but aha we've got two new lock streams right and if we look at these we've logged out in our past eight the data that we were provided and we see that this match tan detail type subscription expired and Source come. Any company which is exactly what we wanted to see so our rule is set up to filter based on that type and based on the source right but at this point we're not really doing anything with either with our workflow or at the end of it what we want to do to complete the pattern is do some of that processing we were talking about and then put it back onto the bus so real quick let's go back",
+      "created_at": "2020-04-16T18:37:28.312Z"
+    },
+    {
+      "text": "we can close this",
+      "created_at": "2020-04-16T18:37:32.517Z"
+    },
+    {
+      "text": "and we can go back to our workflow that we talked about",
+      "created_at": "2020-04-16T18:37:36.316Z"
+    },
+    {
+      "text": "we're going to Define this workflow",
+      "created_at": "2020-04-16T18:37:40.569Z"
+    },
+    {
+      "text": "process cancellation and we'll start there",
+      "created_at": "2020-04-16T18:37:46.372Z"
+    },
+    {
+      "text": "that's going to be a parallel state",
+      "created_at": "2020-04-16T18:37:50.300Z"
+    },
+    {
+      "text": "so we're going to give it to branches",
+      "created_at": "2020-04-16T18:37:53.299Z"
+    },
+    {
+      "text": "State want to stay too and we'll start at",
+      "created_at": "2020-04-16T18:37:59.418Z"
+    },
+    {
+      "text": "you know suspend",
+      "created_at": "2020-04-16T18:38:03.336Z"
+    },
+    {
+      "text": "all",
+      "created_at": "2020-04-16T18:38:05.276Z"
+    },
+    {
+      "text": "sources and",
+      "created_at": "2020-04-16T18:38:08.271Z"
+    },
+    {
+      "text": "expiration email right these are just standing in for actual work clothes that you would do whether it's another word flow or a Lambda function or something like that we just wanted to spend these here with past dates or let these stand in here",
+      "created_at": "2020-04-16T18:38:24.294Z"
+    },
+    {
+      "text": "so call that",
+      "created_at": "2020-04-16T18:38:26.366Z"
+    },
+    {
+      "text": "no not that",
+      "created_at": "2020-04-16T18:38:29.387Z"
+    },
+    {
+      "text": "and I like my ends like that",
+      "created_at": "2020-04-16T18:38:35.471Z"
+    },
+    {
+      "text": "how is it safe if you were with us on Tuesday you know that about me I messed that up every time and that's okay and then once both of these are complete",
+      "created_at": "2020-04-16T18:38:47.268Z"
+    },
+    {
+      "text": "we're going to publish to event",
+      "created_at": "2020-04-16T18:38:52.481Z"
+    },
+    {
+      "text": "Bridge",
+      "created_at": "2020-04-16T18:38:55.383Z"
+    },
+    {
+      "text": "what's a b a pass State don't need to put any of that in there",
+      "created_at": "2020-04-16T18:39:04.291Z"
+    },
+    {
+      "text": "we don't need to deal with any of this and then this will be an in-state right",
+      "created_at": "2020-04-16T18:39:09.269Z"
+    },
+    {
+      "text": "Okay so",
+      "created_at": "2020-04-16T18:39:15.370Z"
+    },
+    {
+      "text": "be happy happy happy",
+      "created_at": "2020-04-16T18:39:17.307Z"
+    },
+    {
+      "text": "read we like no red nats visualize it here alright",
+      "created_at": "2020-04-16T18:39:21.269Z"
+    },
+    {
+      "text": "just as we expect this is more analogous to like it sassy",
+      "created_at": "2020-04-16T18:39:26.359Z"
+    },
+    {
+      "text": "but it's a real workflow right so if we're handling this subscription expired event in that customer bounded context what we want to do is to spend all of that customers resources send an expiration email to them which hopefully encourages them to come back and reactivate their subscription right and then once those two things are done we want to publish to of Enbridge a new type of event saying that we've completed processing this",
+      "created_at": "2020-04-16T18:39:53.365Z"
+    },
+    {
+      "text": "let's take these states out of here",
+      "created_at": "2020-04-16T18:39:57.394Z"
+    },
+    {
+      "text": "I'm going to drop them into our actual workflow definition",
+      "created_at": "2020-04-16T18:40:04.297Z"
+    },
+    {
+      "text": "understates",
+      "created_at": "2020-04-16T18:40:12.393Z"
+    },
+    {
+      "text": "the news I need to do some",
+      "created_at": "2020-04-16T18:40:15.339Z"
+    },
+    {
+      "text": "Phillips",
+      "created_at": "2020-04-16T18:40:19.278Z"
+    },
+    {
+      "text": "with me while I do some",
+      "created_at": "2020-04-16T18:40:24.440Z"
+    },
+    {
+      "text": "I was not right",
+      "created_at": "2020-04-16T18:40:25.402Z"
+    },
+    {
+      "text": "we call it housekeeping I don't know branches",
+      "created_at": "2020-04-16T18:40:33.400Z"
+    },
+    {
+      "text": "it's probably a better way I could have formatted this right",
+      "created_at": "2020-04-16T18:40:40.462Z"
+    },
+    {
+      "text": "know if it'll stay if I leave it this way anyway we're almost done to be brief",
+      "created_at": "2020-04-16T18:40:45.312Z"
+    },
+    {
+      "text": "Hollister event Bridge",
+      "created_at": "2020-04-16T18:40:52.463Z"
+    },
+    {
+      "text": "I'd like extras in here what's happening y'all does anybody know I don't know I don't know what's going on here that's correct those match",
+      "created_at": "2020-04-16T18:41:11.385Z"
+    },
+    {
+      "text": "States match",
+      "created_at": "2020-04-16T18:41:14.464Z"
+    },
+    {
+      "text": "publisher of Enbridge matches next publisher of Enbridge",
+      "created_at": "2020-04-16T18:41:18.394Z"
+    },
+    {
+      "text": "not the most interesting part of this demo but still Jama lining that's right yeah I'm aligning still my favorite language. My favorite language",
+      "created_at": "2020-04-16T18:41:27.396Z"
+    },
+    {
+      "text": "what's the weather in Json",
+      "created_at": "2020-04-16T18:41:29.578Z"
+    },
+    {
+      "text": "so then we can update now",
+      "created_at": "2020-04-16T18:41:33.315Z"
+    },
+    {
+      "text": "I need to go back to a customer directory and deploy this again last week we talked about in the real world this would be a separate pipeline in a separate account right because you would have the customer team working on the customer micro service it would not be in the same model repo like we missing process cancellation state is not reachable",
+      "created_at": "2020-04-16T18:41:58.485Z"
+    },
+    {
+      "text": "failed to update some stuff I know how to fix that",
+      "created_at": "2020-04-16T18:42:02.429Z"
+    },
+    {
+      "text": "we're just keeping them in the",
+      "created_at": "2020-04-16T18:42:06.280Z"
+    },
+    {
+      "text": "same repo for convenience here so that you have one reference to go back",
+      "created_at": "2020-04-16T18:42:10.291Z"
+    },
+    {
+      "text": "and look at all this at once",
+      "created_at": "2020-04-16T18:42:12.290Z"
+    },
+    {
+      "text": "and wants that finishes",
+      "created_at": "2020-04-16T18:42:15.352Z"
+    },
+    {
+      "text": "failing to update will redeploy up",
+      "created_at": "2020-04-16T18:42:18.269Z"
+    },
+    {
+      "text": "and in the final step that we need to look at here is getting this final event back onto the event bus",
+      "created_at": "2020-04-16T18:42:27.390Z"
+    },
+    {
+      "text": "today step functions does not provide a way to natively like do a service integration back to event bridge to put final events on the event bus B you can handle the state transition events with your AWS native events on your default the vent busted are already in your service account but remember we're looking for the business events on our event bus that's why we created a custom event but we see this is this is updated already",
+      "created_at": "2020-04-16T18:42:58.484Z"
+    },
+    {
+      "text": "we can go back here and put some more events on their tail get picked up they all run through",
+      "created_at": "2020-04-16T18:43:06.415Z"
+    },
+    {
+      "text": "go back here and look at our definition again",
+      "created_at": "2020-04-16T18:43:09.354Z"
+    },
+    {
+      "text": "and now we see kisses as we'd expect we've got these nice more realistic but simple business process diagram here",
+      "created_at": "2020-04-16T18:43:23.274Z"
+    },
+    {
+      "text": "and again we look we got these top two rows because we",
+      "created_at": "2020-04-16T18:43:27.285Z"
+    },
+    {
+      "text": "5 events down to two matching events you can see now this is a lot more information for us to look at",
+      "created_at": "2020-04-16T18:43:34.424Z"
+    },
+    {
+      "text": "you will want to configure the amount of logging that you have what do you want to log transitions or not what do you unlock only errors mornings Etc I just want you to see what's possible and see the the amount of data that you can capture here",
+      "created_at": "2020-04-16T18:43:49.321Z"
+    },
+    {
+      "text": "alright alright alright alright to last things last",
+      "created_at": "2020-04-16T18:43:55.278Z"
+    },
+    {
+      "text": "when you put some events back on the bus",
+      "created_at": "2020-04-16T18:43:58.273Z"
+    },
+    {
+      "text": "turn on the bus right",
+      "created_at": "2020-04-16T18:44:01.419Z"
+    },
+    {
+      "text": "we're going to need to take our state machine here instead of publish to event Bridge as a past eight let's make this a Lambda task state",
+      "created_at": "2020-04-16T18:44:12.343Z"
+    },
+    {
+      "text": "how much do event Bridge",
+      "created_at": "2020-04-16T18:44:17.515Z"
+    },
+    {
+      "text": "end true then we can get rid of some of this other stuff",
+      "created_at": "2020-04-16T18:44:22.399Z"
+    },
+    {
+      "text": "this",
+      "created_at": "2020-04-16T18:44:25.284Z"
+    },
+    {
+      "text": "resources Define parameters will have to give it a function name",
+      "created_at": "2020-04-16T18:44:29.301Z"
+    },
+    {
+      "text": "how to get rid of payload we can",
+      "created_at": "2020-04-16T18:44:34.273Z"
+    },
+    {
+      "text": "again the jsonpath notation that we've talked briefly about we're going to do a whole episode on the step functions",
+      "created_at": "2020-04-16T18:44:40.305Z"
+    },
+    {
+      "text": "series dedicated to empath help a path end result path",
+      "created_at": "2020-04-16T18:44:46.663Z"
+    },
+    {
+      "text": "so this point we can just grab this state we're going to do some Jama lining again but it'll be quick I promise",
+      "created_at": "2020-04-16T18:44:54.379Z"
+    },
+    {
+      "text": "cuz we're only replacing this line",
+      "created_at": "2020-04-16T18:44:58.274Z"
+    },
+    {
+      "text": "state",
+      "created_at": "2020-04-16T18:45:03.373Z"
+    },
+    {
+      "text": "all right",
+      "created_at": "2020-04-16T18:45:07.290Z"
+    },
+    {
+      "text": "I know some of yall out there like dog bother and I'm like",
+      "created_at": "2020-04-16T18:45:10.391Z"
+    },
+    {
+      "text": "Stan the power of OCD",
+      "created_at": "2020-04-16T18:45:12.313Z"
+    },
+    {
+      "text": "in here couple things are going to have to happen right",
+      "created_at": "2020-04-16T18:45:20.294Z"
+    },
+    {
+      "text": "need to create a Lambda function",
+      "created_at": "2020-04-16T18:45:23.293Z"
+    },
+    {
+      "text": "or Wireless up dynamically right",
+      "created_at": "2020-04-16T18:45:27.297Z"
+    },
+    {
+      "text": "so now is where we go back to that magic incantation I've given you earlier where you",
+      "created_at": "2020-04-16T18:45:33.292Z"
+    },
+    {
+      "text": "shahtoot everything in here",
+      "created_at": "2020-04-16T18:45:37.352Z"
+    },
+    {
+      "text": "can we do that remember sub takes two arguments the first is your template string",
+      "created_at": "2020-04-16T18:45:45.467Z"
+    },
+    {
+      "text": "and the second is a map",
+      "created_at": "2020-04-16T18:45:49.273Z"
+    },
+    {
+      "text": "a values that you want to substitute",
+      "created_at": "2020-04-16T18:45:53.393Z"
+    },
+    {
+      "text": "and so in here",
+      "created_at": "2020-04-16T18:45:56.366Z"
+    },
+    {
+      "text": "we're going to want to give it something like",
+      "created_at": "2020-04-16T18:46:02.426Z"
+    },
+    {
+      "text": "published event bridge will give it a variable that we want to replace right we're going to add a Lambda function here",
+      "created_at": "2020-04-16T18:46:12.401Z"
+    },
+    {
+      "text": "that functions they are in",
+      "created_at": "2020-04-16T18:46:14.289Z"
+    },
+    {
+      "text": "and for the payload",
+      "created_at": "2020-04-16T18:46:16.327Z"
+    },
+    {
+      "text": "let's just take that subscription ID that we've been passing through",
+      "created_at": "2020-04-16T18:46:21.322Z"
+    },
+    {
+      "text": "and pass it in as well",
+      "created_at": "2020-04-16T18:46:23.281Z"
+    },
+    {
+      "text": "so what this means is we're going to create a variable at the top level",
+      "created_at": "2020-04-16T18:46:28.302Z"
+    },
+    {
+      "text": "I'm going to populate that with the value of detail. Subscription ID",
+      "created_at": "2020-04-16T18:46:33.305Z"
+    },
+    {
+      "text": "Samara our original event that we passed in that we created over here tonight so we got this detail subscription ID field",
+      "created_at": "2020-04-16T18:46:42.383Z"
+    },
+    {
+      "text": "well since we gave it",
+      "created_at": "2020-04-16T18:46:47.647Z"
+    },
+    {
+      "text": "a a name there we have to give this a value we have to get this value from somewhere there's a couple ways that we can do this looking at time we got 14 minutes I'm going to do this the right way I think we've got 14 minutes to do this the right way",
+      "created_at": "2020-04-16T18:47:04.489Z"
+    },
+    {
+      "text": "we're going to change this to publish events function a RN which is going to be another parameter",
+      "created_at": "2020-04-16T18:47:13.437Z"
+    },
+    {
+      "text": "IC the right way",
+      "created_at": "2020-04-16T18:47:16.352Z"
+    },
+    {
+      "text": "it's my belief",
+      "created_at": "2020-04-16T18:47:18.372Z"
+    },
+    {
+      "text": "this should live with the event Bridge custom event bus",
+      "created_at": "2020-04-16T18:47:22.352Z"
+    },
+    {
+      "text": "because it's a it's a function is going to get reused over and over you don't want to rebuild it and every microservice the simple function that takes any event and if those it on the bus right that's all it does so it takes like an event bus argument it takes an event argument and then it puts be on a and then it returns Happy Days right so it doesn't do any processing filtering anything else it's just a stopgap until hopefully we get a service integration for AWS step functions and events in event bridge that be great when it the a RN of the Lambda prostate function",
+      "created_at": "2020-04-16T18:48:01.351Z"
+    },
+    {
+      "text": "don't want function name just one function",
+      "created_at": "2020-04-16T18:48:08.300Z"
+    },
+    {
+      "text": "type string",
+      "created_at": "2020-04-16T18:48:13.286Z"
+    },
+    {
+      "text": "today we're probably going to go back once we create this and just copy paste at default in there",
+      "created_at": "2020-04-16T18:48:18.292Z"
+    },
+    {
+      "text": "let's see so this is what I was doing earlier",
+      "created_at": "2020-04-16T18:48:23.289Z"
+    },
+    {
+      "text": "close up",
+      "created_at": "2020-04-16T18:48:25.367Z"
+    },
+    {
+      "text": "customer hair",
+      "created_at": "2020-04-16T18:48:28.294Z"
+    },
+    {
+      "text": "drag that whole hello world function into here that's what I was doing",
+      "created_at": "2020-04-16T18:48:35.304Z"
+    },
+    {
+      "text": "putting that there so that we had time to do this the right way",
+      "created_at": "2020-04-16T18:48:39.281Z"
+    },
+    {
+      "text": "so while I'm going over and pulling this over something to remember",
+      "created_at": "2020-04-16T18:48:50.360Z"
+    },
+    {
+      "text": "if our state machine is going to call that Lambda function and he's have I am permissions to invoke it as well",
+      "created_at": "2020-04-16T18:48:57.279Z"
+    },
+    {
+      "text": "so after all of these policies",
+      "created_at": "2020-04-16T18:49:00.459Z"
+    },
+    {
+      "text": "going to give it another policy which allows it to invoke Lambda function and that'll just be ref",
+      "created_at": "2020-04-16T18:49:08.603Z"
+    },
+    {
+      "text": "whatever we call that up top publish events function AR in",
+      "created_at": "2020-04-16T18:49:14.301Z"
+    },
+    {
+      "text": "okay so now it can invoke that function",
+      "created_at": "2020-04-16T18:49:19.284Z"
+    },
+    {
+      "text": "I'm going to close this stuff for a second",
+      "created_at": "2020-04-16T18:49:25.281Z"
+    },
+    {
+      "text": "everything out of our state machine that we want it looks the way we want it to look so we're going to close this",
+      "created_at": "2020-04-16T18:49:32.328Z"
+    },
+    {
+      "text": "I'm going to close this sample event because we built several events so we're going to close this",
+      "created_at": "2020-04-16T18:49:39.384Z"
+    },
+    {
+      "text": "events are just going to stay the same we got him that's wonderful",
+      "created_at": "2020-04-16T18:49:42.281Z"
+    },
+    {
+      "text": "and then this is our customer templates we're going to get rid of that as well",
+      "created_at": "2020-04-16T18:49:48.466Z"
+    },
+    {
+      "text": "I need to add a new resource here",
+      "created_at": "2020-04-16T18:49:59.320Z"
+    },
+    {
+      "text": "this is going to be our public events function",
+      "created_at": "2020-04-16T18:50:03.307Z"
+    },
+    {
+      "text": "code UI public events we need to rename this",
+      "created_at": "2020-04-16T18:50:12.301Z"
+    },
+    {
+      "text": "it's going to do app. Lambda Handler which if you haven't seen its already in here come to replace his coat in a minute",
+      "created_at": "2020-04-16T18:50:23.423Z"
+    },
+    {
+      "text": "runtime nodejs yes it needs a policy that allows it to put events on to this event bus but we already know we can refer to that dynamically",
+      "created_at": "2020-04-16T18:50:36.475Z"
+    },
+    {
+      "text": "and that's all I needs to be able to do",
+      "created_at": "2020-04-16T18:50:39.367Z"
+    },
+    {
+      "text": "just needs to be able to put events on to our event bus",
+      "created_at": "2020-04-16T18:50:43.344Z"
+    },
+    {
+      "text": "and we'll probably wants our publish events AR in",
+      "created_at": "2020-04-16T18:50:53.339Z"
+    },
+    {
+      "text": "Barn of y'all",
+      "created_at": "2020-04-16T18:51:01.580Z"
+    },
+    {
+      "text": "name the function cuz we need to pull this in",
+      "created_at": "2020-04-16T18:51:08.319Z"
+    },
+    {
+      "text": "I was so matter what's happened there",
+      "created_at": "2020-04-16T18:51:10.464Z"
+    },
+    {
+      "text": "missing space it's always a missing space",
+      "created_at": "2020-04-16T18:51:30.381Z"
+    },
+    {
+      "text": "okay",
+      "created_at": "2020-04-16T18:51:33.340Z"
+    },
+    {
+      "text": "SuperSU now",
+      "created_at": "2020-04-16T18:51:35.391Z"
+    },
+    {
+      "text": "I'm going to give you some simple code in here get rid of all of this",
+      "created_at": "2020-04-16T18:51:43.318Z"
+    },
+    {
+      "text": "again I wrote this last night I am not a JavaScript developer so if you don't like my JavaScript you're probably right",
+      "created_at": "2020-04-16T18:51:50.333Z"
+    },
+    {
+      "text": "but all this does",
+      "created_at": "2020-04-16T18:51:56.329Z"
+    },
+    {
+      "text": "STK we don't actually have to run through the whole package Json thing because that's going to be in the",
+      "created_at": "2020-04-16T18:52:01.351Z"
+    },
+    {
+      "text": "give ourselves a new event Bridge client",
+      "created_at": "2020-04-16T18:52:05.279Z"
+    },
+    {
+      "text": "even event",
+      "created_at": "2020-04-16T18:52:09.343Z"
+    },
+    {
+      "text": "bat subscription ID",
+      "created_at": "2020-04-16T18:52:11.286Z"
+    },
+    {
+      "text": "we create",
+      "created_at": "2020-04-16T18:52:13.347Z"
+    },
+    {
+      "text": "this is a new event so when you",
+      "created_at": "2020-04-16T18:52:15.333Z"
+    },
+    {
+      "text": "event Bridge. Put events",
+      "created_at": "2020-04-16T18:52:18.418Z"
+    },
+    {
+      "text": "you need",
+      "created_at": "2020-04-16T18:52:21.406Z"
+    },
+    {
+      "text": "an object",
+      "created_at": "2020-04-16T18:52:22.281Z"
+    },
+    {
+      "text": "item called in trees which is a list",
+      "created_at": "2020-04-16T18:52:26.293Z"
+    },
+    {
+      "text": "events so this is a single event this is a list of one item of event in this case will see this won't match our existing rule right because this is expiration process and we were looking for a subscription expired",
+      "created_at": "2020-04-16T18:52:40.288Z"
+    },
+    {
+      "text": "it's okay we're not going to be in a loop here",
+      "created_at": "2020-04-16T18:52:42.377Z"
+    },
+    {
+      "text": "give it some information that we want we passed that",
+      "created_at": "2020-04-16T18:52:47.279Z"
+    },
+    {
+      "text": "in the detail and then we just log out some information that's all we need to do here pretty simple pretty straightforward simple Lambda function just takes that event that we give it frozen on the bus",
+      "created_at": "2020-04-16T18:52:59.320Z"
+    },
+    {
+      "text": "don't",
+      "created_at": "2020-04-16T18:53:11.288Z"
+    },
+    {
+      "text": "no wonder I was already where I thought I should be",
+      "created_at": "2020-04-16T18:53:15.343Z"
+    },
+    {
+      "text": "we got nice decent sampaoli we got 7 minutes left I think we're going to get this done and I love to push this right up to the end y'all knowledge",
+      "created_at": "2020-04-16T18:53:24.296Z"
+    },
+    {
+      "text": "must apply this",
+      "created_at": "2020-04-16T18:53:26.380Z"
+    },
+    {
+      "text": "what format are unrecognized resource types AWS serverless function of you know why I deleted that transform in there I also didn't Sam build I'm surprised",
+      "created_at": "2020-04-16T18:53:40.292Z"
+    },
+    {
+      "text": "Ethan catch me and calling me out on that when you can do it cuz I'm trying buddy I'm trying I'm going I'm going to transform that we need",
+      "created_at": "2020-04-16T18:53:51.440Z"
+    },
+    {
+      "text": "put that pretty little transform right there",
+      "created_at": "2020-04-16T18:53:55.322Z"
+    },
+    {
+      "text": "now we can do Sam build",
+      "created_at": "2020-04-16T18:53:58.461Z"
+    },
+    {
+      "text": "cachapa wrap nicely for us",
+      "created_at": "2020-04-16T18:54:01.410Z"
+    },
+    {
+      "text": "and then Sam deploy which will take it uploaded upload the code create that Lambda function forest with the rule we got six minutes left I think it's almost guaranteed at this point that I probably missed something in I am so let's see let's see how this goes first I can't be everywhere I have faith in your brother you can be",
+      "created_at": "2020-04-16T18:54:24.328Z"
+    },
+    {
+      "text": "skin buddy I appreciate you",
+      "created_at": "2020-04-16T18:54:28.506Z"
+    },
+    {
+      "text": "super rating alright super that rolls done function functions done Stacks updated everybody's happy we got this a RN",
+      "created_at": "2020-04-16T18:54:39.322Z"
+    },
+    {
+      "text": "and here's one we really need right this is the air anavar Lambda function we're going to hard-code this for today",
+      "created_at": "2020-04-16T18:54:49.355Z"
+    },
+    {
+      "text": "highway to do that new Sam deploy processes awesome it is it is it will be more awesomest which respected those back text that you were trying to do to highlight but you know this is the world we live in and make do with what we can with what we can",
+      "created_at": "2020-04-16T18:55:05.502Z"
+    },
+    {
+      "text": "I'd Services of emboss we're going to close all the stuff out going to go back to customer remember in our template",
+      "created_at": "2020-04-16T18:55:13.290Z"
+    },
+    {
+      "text": "we said that we were just going to put that default value right there",
+      "created_at": "2020-04-16T18:55:17.309Z"
+    },
+    {
+      "text": "public events function a RN",
+      "created_at": "2020-04-16T18:55:19.347Z"
+    },
+    {
+      "text": "now at this point maybe edj knows the answer to this he is Yoda",
+      "created_at": "2020-04-16T18:55:31.324Z"
+    },
+    {
+      "text": "Sam deploy",
+      "created_at": "2020-04-16T18:55:34.300Z"
+    },
+    {
+      "text": "update this I think the right answer",
+      "created_at": "2020-04-16T18:55:37.445Z"
+    },
+    {
+      "text": "it's going to be run Sam to play guided again to recapture this parameter because this is a new parameter that we're giving it but we put it in here we tried to wire it up we got 5 minutes left so y'all",
+      "created_at": "2020-04-16T18:55:51.438Z"
+    },
+    {
+      "text": "cancerous skin serious right now let's see what we got here we don't have any Lambda functions we just got this this run Sam deploy",
+      "created_at": "2020-04-16T18:56:01.286Z"
+    },
+    {
+      "text": "guided",
+      "created_at": "2020-04-16T18:56:04.576Z"
+    },
+    {
+      "text": "failed to parse template while scanning a simple key",
+      "created_at": "2020-04-16T18:56:10.355Z"
+    },
+    {
+      "text": "ah",
+      "created_at": "2020-04-16T18:56:13.387Z"
+    },
+    {
+      "text": "play that that's a",
+      "created_at": "2020-04-16T18:56:18.386Z"
+    },
+    {
+      "text": "the hard return there",
+      "created_at": "2020-04-16T18:56:21.319Z"
+    },
+    {
+      "text": "funny how that happened things happen all right okay may that be are hiccup yes run it again I am running it again that's G works to it does but why would I use that",
+      "created_at": "2020-04-16T18:56:41.367Z"
+    },
+    {
+      "text": "they that wait for the changeset to be created",
+      "created_at": "2020-04-16T18:56:45.515Z"
+    },
+    {
+      "text": "so only take a minute because we're just departure editing is behind the caption so hard to see and help t-bug",
+      "created_at": "2020-04-16T18:56:58.466Z"
+    },
+    {
+      "text": "by the way you know you can move those captions around just grab and move them on the screen or if you click the settings Cog you can collapse into a box you can hide them altogether if you just prefer listening to my soothing baritone tell a dad joke",
+      "created_at": "2020-04-16T18:57:17.437Z"
+    },
+    {
+      "text": "walks into a bar and says",
+      "created_at": "2020-04-16T18:57:19.286Z"
+    },
+    {
+      "text": "looking for the man that shot my paw",
+      "created_at": "2020-04-16T18:57:22.354Z"
+    },
+    {
+      "text": "the only dog dog joke. We are done deploying here so",
+      "created_at": "2020-04-16T18:57:30.289Z"
+    },
+    {
+      "text": "you know that one",
+      "created_at": "2020-04-16T18:57:34.287Z"
+    },
+    {
+      "text": "the Great American West and you don't know that joke I should have said Saloon maybe heard it that way before",
+      "created_at": "2020-04-16T18:57:40.455Z"
+    },
+    {
+      "text": "so we think we've wired all this out we got three minutes left let's put",
+      "created_at": "2020-04-16T18:57:44.291Z"
+    },
+    {
+      "text": "Boston see what happens first we probably want to be in the correct directory to put some events on the bus and Tata",
+      "created_at": "2020-04-16T18:57:54.314Z"
+    },
+    {
+      "text": "outbound y'all and we know already that we should seek to be picked up",
+      "created_at": "2020-04-16T18:58:00.401Z"
+    },
+    {
+      "text": "go back over here nothing's really changed for this",
+      "created_at": "2020-04-16T18:58:05.380Z"
+    },
+    {
+      "text": "we come back here",
+      "created_at": "2020-04-16T18:58:08.669Z"
+    },
+    {
+      "text": "expired subscription process we go back to our logs",
+      "created_at": "2020-04-16T18:58:15.401Z"
+    },
+    {
+      "text": "unless a1457 to execution that's great that's great execution failed",
+      "created_at": "2020-04-16T18:58:25.383Z"
+    },
+    {
+      "text": "two are published to event Bridge State",
+      "created_at": "2020-04-16T18:58:28.299Z"
+    },
+    {
+      "text": "Jason path specified for the field cannot be found in the input",
+      "created_at": "2020-04-16T18:58:37.443Z"
+    },
+    {
+      "text": "detail type subscription expired sedative region detail subscription ID",
+      "created_at": "2020-04-16T18:58:46.295Z"
+    },
+    {
+      "text": ". detail. Subscription ID okay why not should be in there I see it",
+      "created_at": "2020-04-16T18:59:00.476Z"
+    },
+    {
+      "text": "details subscription ID maybe it's something because I put the knife in there and makes things go crazy instead of a I bet that's what it is I'm use my last minute here with y'all to change a-to an underscore and see if that's it",
+      "created_at": "2020-04-16T18:59:22.592Z"
+    },
+    {
+      "text": "the since it was working last night",
+      "created_at": "2020-04-16T18:59:26.324Z"
+    },
+    {
+      "text": "it will work",
+      "created_at": "2020-04-16T18:59:28.300Z"
+    },
+    {
+      "text": "we also did some filtering here with like pushing stuff in there so doesn't necessarily mean that that was going to get done correctly so here's customer",
+      "created_at": "2020-04-16T18:59:39.392Z"
+    },
+    {
+      "text": "past 8",
+      "created_at": "2020-04-16T18:59:42.288Z"
+    },
+    {
+      "text": "ocean ID detail. Subscription",
+      "created_at": "2020-04-16T18:59:45.325Z"
+    },
+    {
+      "text": "what I've done here this is one of those it's going to be interesting to debug",
+      "created_at": "2020-04-16T18:59:53.595Z"
+    },
+    {
+      "text": "well",
+      "created_at": "2020-04-16T19:00:07.387Z"
+    },
+    {
+      "text": "that actually matches what I had before",
+      "created_at": "2020-04-16T19:00:10.290Z"
+    },
+    {
+      "text": "so",
+      "created_at": "2020-04-16T19:00:13.294Z"
+    },
+    {
+      "text": "let's take a look at our",
+      "created_at": "2020-04-16T19:00:17.407Z"
+    },
+    {
+      "text": "see if the other one did the same thing this is what any 9f 90",
+      "created_at": "2020-04-16T19:00:26.610Z"
+    },
+    {
+      "text": "execution failed",
+      "created_at": "2020-04-16T19:00:32.434Z"
+    },
+    {
+      "text": "jsonpath. Detail. Subscription ID specified for the field cannot be found in this inputs",
+      "created_at": "2020-04-16T19:00:41.326Z"
+    },
+    {
+      "text": "I see why you see it you see it",
+      "created_at": "2020-04-16T19:00:57.390Z"
+    },
+    {
+      "text": "it's a it's a",
+      "created_at": "2020-04-16T19:00:59.327Z"
+    },
+    {
+      "text": "events that's why",
+      "created_at": "2020-04-16T19:01:02.370Z"
+    },
+    {
+      "text": "little bit and see where I went wrong there and maybe just at some point I didn't it's because",
+      "created_at": "2020-04-16T19:01:09.440Z"
+    },
+    {
+      "text": "we added that parallel States 02 States come back out",
+      "created_at": "2020-04-16T19:01:14.393Z"
+    },
+    {
+      "text": "both of them have that field we didn't set where the result pass when",
+      "created_at": "2020-04-16T19:01:19.471Z"
+    },
+    {
+      "text": "one quick workaround",
+      "created_at": "2020-04-16T19:01:23.291Z"
+    },
+    {
+      "text": "just be to put the zero there and take the first copy that's not the right answer so I'm going to fix this up the right way push it to the repo the repo is here in the chat 3 I want to thank you all for joining I know this was a very deep dive I'm going to write this up and step through the same Parts as well split these up in the videos but again the workflow that we covered was picking up events from of Enbridge passing them to an Express workflow and then putting them back onto an event Bridge event bus thank you all for joining I'll see you next Tuesday for AWS step functions",
+      "created_at": "2020-04-16T19:02:04.485Z"
+    }
+  ]
+}

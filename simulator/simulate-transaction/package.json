@@ -1,0 +1,12 @@
+{
+  "name": "simulate-transaction",
+  "version": "0.1.0",
+  "description": "Transaction simulator",
+  "main": "app.js",
+  "author": "SAM CLI",
+  "license": "MIT-0",
+  "dependencies": {
+    "faker": "^4.1.0",
+    "lodash": "^4.17.15"
+  }
+}

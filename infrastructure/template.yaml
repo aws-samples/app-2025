@@ -1,0 +1,48 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  AnyCompany Amazon EventBridge event bus
+  
+  EventBus declaration for the AnyCompany sample SaaS application.
+
+Resources:
+  EventBus:
+    Type: AWS::Events::EventBus
+    Properties: 
+      Name: AnyCompany
+  
+  EventBusSSMParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: The ARN of the event bus for other services to consume
+      Name: /EventBusARN
+      Type: String
+      Value: !GetAtt EventBus.Arn
+  
+  PublishEventsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: publish-events/
+      Handler: app.lambdaHandler
+      Runtime: nodejs12.x
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - events:PutEvents
+              Resource:
+                - !GetAtt EventBus.Arn
+
+Outputs:
+  EventBusArn:
+    Description: "The ARN of the event bus"
+    Value: !GetAtt EventBus.Arn
+  EventBusName:
+    Description: "The name of the event bus"
+    Value: !GetAtt EventBus.Name
+  PublishEventsFunctionArn:
+    Description: "The ARN of our Lambda function"
+    Value: !GetAtt PublishEventsFunction.Arn

@@ -1,0 +1,1413 @@
+{
+  "name": "App 2025: Storing data with service integrations",
+  "messages": [
+    {
+      "text": "all right here we go hey everybody it is stream time for app 20-25 I'm Rob today we're going to be talking about storing data with service Integrations if you joined for my step function series over on the 8th of us twitch Channel we will sort of reference that but this is going to be a little different in a little more in-depth so this is not a repeat you're going to want to stick around and see this we only folks on step functions for a very minor part as you see on the agenda there so first I will give a quick overview over of what a service integration is what we mean when we say that whatever places",
+      "created_at": "2020-05-14T18:00:48.494Z"
+    },
+    {
+      "text": "talk about a new service not just new to the series Amazon Kinesis data firehose if you're not using this today you absolutely should be using it in your application it's extremely robust way of moving streams of data around to different locations and in particular if you need to both process transactions and set yourself up for analytics to really good choice so that's what we're going to build with it I'm going to show you how to get Events off of the event bus and into Kinesis data firehose so you can get them stored eventually wherever you store them for us lbs 3 I'll show you how to use AWS step functions work clothes to store and then by extension retrieve data to and from dynamodb tables without using any AWS Lambda functions so that's a declarative transformation that you put in and then we're going to build this concurrent",
+      "created_at": "2020-05-14T18:01:45.491Z"
+    },
+    {
+      "text": "analytics processing pipeline",
+      "created_at": "2020-05-14T18:01:47.488Z"
+    },
+    {
+      "text": "but it takes an event on tour bus",
+      "created_at": "2020-05-14T18:01:51.492Z"
+    },
+    {
+      "text": "dispatches it to two different targets so the same event comes in but goes out the one hand for a workflow to handle as we shown previously with Express work clothes or standard work clothes and then on the other hand it's going to go to Conesus State a fire hose to ultimately be stored in a relational model that we can then query later and the whole purpose of this is for next week we're going to be using Amazon Athena to show you how to serverless leak clear your data and this sets that data up using glue into",
+      "created_at": "2020-05-14T18:02:24.572Z"
+    },
+    {
+      "text": "managed data in an S3 bucket that you can query pretty easily so it's going to be sort of the the last couple pieces that we cover with app 2025",
+      "created_at": "2020-05-14T18:02:35.486Z"
+    },
+    {
+      "text": "hey there's my docs bought a Luminox but it's glad to see it work today that's actually the links bought the homepage for can you say the fire hoses there along with pricing my good buddy edj geek2geek every time and every time he was here in the channel moderating for me did a really good episode of sessions with Sam that's linked here that's focused on Conesus state of fire hose and Kinesis data analytics so it's different again from what we're going to build today so if you want to get even deeper into can you sedate a fire hose that's a good resource the step function",
+      "created_at": "2020-05-14T18:03:14.498Z"
+    },
+    {
+      "text": "service Integrations in general and then just some other links that I think will be helpful for you okay",
+      "created_at": "2020-05-14T18:03:22.494Z"
+    },
+    {
+      "text": "let's go back to our buddy",
+      "created_at": "2020-05-14T18:03:28.499Z"
+    },
+    {
+      "text": "architecture",
+      "created_at": "2020-05-14T18:03:30.496Z"
+    },
+    {
+      "text": "and let's do this as we talked about what service Integrations are",
+      "created_at": "2020-05-14T18:03:36.493Z"
+    },
+    {
+      "text": "we have this event bus running with time left to right and events come onto the bus and workflows in AWS step functions pick them up and handle them that itself is a service integration write the date of UFC event bus rule dispatches that event to another service that Services AWS step functions so it's integrated it doesn't take it send it to land and have Lambda and the service it's a direct service to service call so whenever we say service integration that's what we're talkin about is passing data or invoking other services directly without intermediaries",
+      "created_at": "2020-05-14T18:04:22.487Z"
+    },
+    {
+      "text": "and one of the major advantages to doing this is Price Rite so if you were to invoke the same call with an AWS Lambda function in the middle you pay for that execution time if you were to write data out to your dynamodb table using a Lambda function you pay for that execution time right and it's deterministic to a point but you also have Jitter Jitter that's my second reference for it already",
+      "created_at": "2020-05-14T18:04:50.489Z"
+    },
+    {
+      "text": "another reason is when you use a service integration it's declarative so you declare what the parameters are for the input and the parameters for the output and we handle like even to the runtime level getting that stuff over so you're not looking at dependencies libraries other areas and introduce vulnerabilities or that introduced liability because as a friend Jeremy daily says a lot of code is not an asset it's a liability so you want to minimize the number of lines of code that you're responsible for",
+      "created_at": "2020-05-14T18:05:20.491Z"
+    },
+    {
+      "text": "Sims let you do that",
+      "created_at": "2020-05-14T18:05:23.487Z"
+    },
+    {
+      "text": "this case we've seen this pattern a couple times in our Express workflows episode in our long-running work clothes",
+      "created_at": "2020-05-14T18:05:29.491Z"
+    },
+    {
+      "text": "using standard workflows where some event comes onto the bus and dispatches the workflow",
+      "created_at": "2020-05-14T18:05:36.494Z"
+    },
+    {
+      "text": "what we're actually going to see here now let's see if I can draw fast enough to make this worth everybody's while",
+      "created_at": "2020-05-14T18:05:43.495Z"
+    },
+    {
+      "text": "bring a change this to oltp using r r step functions",
+      "created_at": "2020-05-14T18:05:48.493Z"
+    },
+    {
+      "text": "but over here",
+      "created_at": "2020-05-14T18:05:50.493Z"
+    },
+    {
+      "text": "pull in Euros can I get a can I get a fight there's of my fire hose like that y'all",
+      "created_at": "2020-05-14T18:05:57.490Z"
+    },
+    {
+      "text": "technology you know what I mean it's just crazy",
+      "created_at": "2020-05-14T18:06:00.495Z"
+    },
+    {
+      "text": "undo that can I use this group there something when y'all think I think I got it now",
+      "created_at": "2020-05-14T18:06:08.491Z"
+    },
+    {
+      "text": "get rid of that",
+      "created_at": "2020-05-14T18:06:10.488Z"
+    },
+    {
+      "text": "there we go",
+      "created_at": "2020-05-14T18:06:12.495Z"
+    },
+    {
+      "text": "and",
+      "created_at": "2020-05-14T18:06:15.498Z"
+    },
+    {
+      "text": "drop that in there right super for this we don't need to put a Lambda function here",
+      "created_at": "2020-05-14T18:06:23.491Z"
+    },
+    {
+      "text": "what we're going to do",
+      "created_at": "2020-05-14T18:06:26.492Z"
+    },
+    {
+      "text": "is drop this right into an S3 bucket",
+      "created_at": "2020-05-14T18:06:30.493Z"
+    },
+    {
+      "text": "like so and that makes this architecture even simpler",
+      "created_at": "2020-05-14T18:06:36.496Z"
+    },
+    {
+      "text": "so",
+      "created_at": "2020-05-14T18:06:39.494Z"
+    },
+    {
+      "text": "there are some cases didn't want to do that we're going to we're going to live with this diagram okay there's some cases maybe I'm getting Arrow",
+      "created_at": "2020-05-14T18:06:48.509Z"
+    },
+    {
+      "text": "directional connector",
+      "created_at": "2020-05-14T18:06:50.494Z"
+    },
+    {
+      "text": "go there are Gilbert",
+      "created_at": "2020-05-14T18:06:53.488Z"
+    },
+    {
+      "text": "there's some cases where you may want to use a Lambda function",
+      "created_at": "2020-05-14T18:06:58.486Z"
+    },
+    {
+      "text": "and yeah FYI you can do draw. IO writing vs code I know I tweeted about that and I love it the problem is this diagram",
+      "created_at": "2020-05-14T18:07:07.501Z"
+    },
+    {
+      "text": "doesn't have a background associated with it and so when I opened it up to do that some of my fonts or like the wrong color and they got washed out so for accessibility reasons I want to make sure that as many people as possible can see what I'm doing so yes if you haven't seen me draw. IO extension in Visual Studio code you definitely want to check that out thanks for highlighting that",
+      "created_at": "2020-05-14T18:07:28.505Z"
+    },
+    {
+      "text": "so what we're looking at here is we have a single event that we're going to dispatch",
+      "created_at": "2020-05-14T18:07:38.493Z"
+    },
+    {
+      "text": "tutu workflows right",
+      "created_at": "2020-05-14T18:07:41.504Z"
+    },
+    {
+      "text": "where do the song Gettin better he can be taught",
+      "created_at": "2020-05-14T18:07:44.503Z"
+    },
+    {
+      "text": "no Kinesis date a fire hose allows you to perform Transformations on records after they've entered the string on their way out it does this using AWS Lambda functions and again if you want to see a really good example of this check out Edie jgeeks sessions with Sam episodes that I've Linked In The Links here because that's what he does but one of the principles for us is we want to make as much use of the built-in functionality of the services as we can and Kinesis I'm sorry event Bridge allows us to do this with him put Transformers so we can take the format of the event that we received on the bus and using a pattern that's really similar to step functions and practice drive from Json path we can transform that event body into the format that we want before we send it over to our destination to any destination so you can do that for",
+      "created_at": "2020-05-14T18:08:40.496Z"
+    },
+    {
+      "text": "actions workflow this week",
+      "created_at": "2020-05-14T18:08:42.494Z"
+    },
+    {
+      "text": "and then I've shown you in previous step functions episodes as well",
+      "created_at": "2020-05-14T18:08:47.499Z"
+    },
+    {
+      "text": "you can use the Pass State in Step functions to transform data or how you can use the parameters object when you're doing service integration calls like to dynamodb to pick and choose the pieces of the state that you want to get your data into the right shape for your service integration call without having to put a Lambda function in the middle who always before you go riding like a glulam to function I don't mean AWS glue I mean like conceptual glue always stop and think what does the service that I'm using and the service that I'm invoking give me to accomplish the same task that's just a little thing that helps keep your invitations down which helps",
+      "created_at": "2020-05-14T18:09:28.499Z"
+    },
+    {
+      "text": "bring your performance up and again long-term because it's declarative you don't have to worry about that being broken as libraries underneath change",
+      "created_at": "2020-05-14T18:09:37.494Z"
+    },
+    {
+      "text": "so let me take a look at my agenda here okay yeah Destiny",
+      "created_at": "2020-05-14T18:09:42.492Z"
+    },
+    {
+      "text": "so today are Olaf flow is going to store data in an S3 bucket so that next week we can query that serverless flea using Amazon Athena",
+      "created_at": "2020-05-14T18:09:54.502Z"
+    },
+    {
+      "text": "is there a couple other option one you can send it directly into an Amazon redshift data warehouse so if you're already running redshift cluster then you can use kenita Kinesis data firehose to take these records and just spray them directly into redshift so that's one format",
+      "created_at": "2020-05-14T18:10:13.492Z"
+    },
+    {
+      "text": "Yazi dj-gate geek says don't use Lambda to transport only to transform only reply business rules really",
+      "created_at": "2020-05-14T18:10:22.511Z"
+    },
+    {
+      "text": "even your Transformations a lot of times you can do without Lambda so it's really want you need to apply a business rule to it is when you should be doing it",
+      "created_at": "2020-05-14T18:10:30.496Z"
+    },
+    {
+      "text": "another good one for this and",
+      "created_at": "2020-05-14T18:10:33.517Z"
+    },
+    {
+      "text": "maybe even build this on here because you could conceivably do the same",
+      "created_at": "2020-05-14T18:10:37.501Z"
+    },
+    {
+      "text": "as you can give yourself Amazon elasticsearch service is a target for Conesus State a fire hose so while we send this original event over for analytics processing we may also want to send it into an Amazon elasticsearch service cluster so that that data is searchable by our application whether it's log data or you know text Data whatever your you're searching through that's another Target for kinessa State a fire hose and",
+      "created_at": "2020-05-14T18:11:09.497Z"
+    },
+    {
+      "text": "stream can publish to multiple targets I believe a DJ Gig keep me honest on that one",
+      "created_at": "2020-05-14T18:11:18.493Z"
+    },
+    {
+      "text": "not 100% sure but I believe it can't he says right so we're going to assume that I'm right on this one",
+      "created_at": "2020-05-14T18:11:25.498Z"
+    },
+    {
+      "text": "oh",
+      "created_at": "2020-05-14T18:11:28.501Z"
+    },
+    {
+      "text": "Amazon Kinesis data firehose is it purely serverless service",
+      "created_at": "2020-05-14T18:11:35.499Z"
+    },
+    {
+      "text": "these are for tenants right there's nothing to provision there's no infrastructure to manage highly Available Auto scales and you pay for Value right so you don't have to pre to find Shards ahead of time like you do with kinesis",
+      "created_at": "2020-05-14T18:11:53.494Z"
+    },
+    {
+      "text": "the number of records that you push through determines the price you pay and that's that end in the story so you can get a look on that on the pricing page but it's only the sorry and transformations",
+      "created_at": "2020-05-14T18:12:07.497Z"
+    },
+    {
+      "text": "for the computer behind them but",
+      "created_at": "2020-05-14T18:12:11.497Z"
+    },
+    {
+      "text": "send any data through you don't have shards sitting there idle you only pay for the data that goes through so that's another key point",
+      "created_at": "2020-05-14T18:12:18.499Z"
+    },
+    {
+      "text": "and look at that there's my bot just in time",
+      "created_at": "2020-05-14T18:12:22.498Z"
+    },
+    {
+      "text": "what the links and then the the other Target that I want to talk about for kinessa State a fire hoses Splunk so a lot of Enterprises have big investments in time and money and Splunk for visibility into Data inside their networks Kinesis data firehose can publish directly into Splunk as well so if your Splunk user definitely go check that out",
+      "created_at": "2020-05-14T18:12:42.500Z"
+    },
+    {
+      "text": "add a different mug today I apologize if it makes more noise hopefully don't spill it all over myself",
+      "created_at": "2020-05-14T18:12:47.497Z"
+    },
+    {
+      "text": "you can also do data transformation within the fire hose that's correct and there's two types one we're going to do when we're not going to do the date of transformation within the fire hose I'd advise you to look at the sessions with Sam what we're going to do is a format transformation so we're getting our data in as Jason or we're going to write it out as Apache parquet so that's another key point for kinessa State a fire hose",
+      "created_at": "2020-05-14T18:13:18.507Z"
+    },
+    {
+      "text": "to do is one feature where we can archive the raw data so we'll have actually two",
+      "created_at": "2020-05-14T18:13:24.502Z"
+    },
+    {
+      "text": "modify my Alex get rid of you I need to modify my diagram here a little bit what we're actually going to have just two buckets",
+      "created_at": "2020-05-14T18:13:33.506Z"
+    },
+    {
+      "text": "and one of them is going to get raw data",
+      "created_at": "2020-05-14T18:13:38.499Z"
+    },
+    {
+      "text": "and one of them is going to get the day that we Transformer process is what it's called into parquet",
+      "created_at": "2020-05-14T18:13:46.507Z"
+    },
+    {
+      "text": "so the single workflow",
+      "created_at": "2020-05-14T18:13:49.496Z"
+    },
+    {
+      "text": "Ben Bridge doesn't really know about any of this",
+      "created_at": "2020-05-14T18:13:51.499Z"
+    },
+    {
+      "text": "another Target but inside here we're processing it to park a 4 optimization for searching query in later and then at the same time story in the Raw original event and then you can apply lifecycle policies to these types of things are no longer needed do it in test but not production if you want to use it as sort of the bug mechanism whatever your use case is important to know that",
+      "created_at": "2020-05-14T18:14:20.517Z"
+    },
+    {
+      "text": "you can also send it to multiple buckets inside the S3 Target and then of course we have the code for all of this",
+      "created_at": "2020-05-14T18:14:27.499Z"
+    },
+    {
+      "text": "now a very important point to note about Kinesis ate a fire hose is it is not covered under the free tier now it's not a very expensive service in fact let's view that link to see",
+      "created_at": "2020-05-14T18:14:42.503Z"
+    },
+    {
+      "text": "price per gigabyte",
+      "created_at": "2020-05-14T18:14:44.506Z"
+    },
+    {
+      "text": "again it's different by region but if you look at this per gigabyte is less than $0.03",
+      "created_at": "2020-05-14T18:14:52.504Z"
+    },
+    {
+      "text": "the the most expensive level so it all depends on how much data you push through it but it is a calculable expense",
+      "created_at": "2020-05-14T18:15:00.498Z"
+    },
+    {
+      "text": "but there is no free tier on it so important to recognize that you will incur charges for using this if you use it in Dev or test just to explore it's pretty easy to keep your inbound data under a gigabyte and then you pay less than $0.03 to see if it's going to work for you or not so I'm still I'd say give it a shot just be aware",
+      "created_at": "2020-05-14T18:15:29.506Z"
+    },
+    {
+      "text": "so",
+      "created_at": "2020-05-14T18:15:31.497Z"
+    },
+    {
+      "text": "let me know that this is what we're doing here",
+      "created_at": "2020-05-14T18:15:36.504Z"
+    },
+    {
+      "text": "in fact let me just to give you",
+      "created_at": "2020-05-14T18:15:40.497Z"
+    },
+    {
+      "text": "Permatex Fields Miss",
+      "created_at": "2020-05-14T18:15:43.502Z"
+    },
+    {
+      "text": "variable Texans can put it here so it's clear",
+      "created_at": "2020-05-14T18:15:50.505Z"
+    },
+    {
+      "text": "and",
+      "created_at": "2020-05-14T18:15:53.508Z"
+    },
+    {
+      "text": "parque",
+      "created_at": "2020-05-14T18:15:56.505Z"
+    },
+    {
+      "text": "the 80s where there's a little tub of vegetable spread",
+      "created_at": "2020-05-14T18:16:01.510Z"
+    },
+    {
+      "text": "butter and it goes Parkay butter Parkay an actual question how how are you doing was he at least once delivery guarantees of event Bridge always ensuring idempotency in destination if needed EG booking a couple ways if you look at the episode from last week where we talked about sqs fifo queues those can help you out but ultimately when you get down to your business rule inside a AWS Lambda function you need to check that you need to handle that idempotent to yourself",
+      "created_at": "2020-05-14T18:16:35.505Z"
+    },
+    {
+      "text": "there's a lot of good resources on it it's",
+      "created_at": "2020-05-14T18:16:38.501Z"
+    },
+    {
+      "text": "how can I put this it's going to be an edge and Edge case that occurs",
+      "created_at": "2020-05-14T18:16:43.505Z"
+    },
+    {
+      "text": "so you should absolutely assume it's going to happen",
+      "created_at": "2020-05-14T18:16:45.506Z"
+    },
+    {
+      "text": "get multiple application regardless of how low the frequency is",
+      "created_at": "2020-05-14T18:16:50.502Z"
+    },
+    {
+      "text": "did the general way to do this is the",
+      "created_at": "2020-05-14T18:16:53.509Z"
+    },
+    {
+      "text": "you you for every time you get an item",
+      "created_at": "2020-05-14T18:16:57.505Z"
+    },
+    {
+      "text": "you attempt to retrieve that",
+      "created_at": "2020-05-14T18:16:59.506Z"
+    },
+    {
+      "text": "unique ID from dynamodb to see if you have one in flight or one that's already been processed and if you find it and it's in a process or completed State then you just discard that operation right because it's already been performed to completion then beyond that it's up to you you may want to just returned with a no operation in flight error you may want to sleep and then check again something like that and if you don't find anything then you write your record into there and start processing again",
+      "created_at": "2020-05-14T18:17:36.503Z"
+    },
+    {
+      "text": "cereal specifically to it but you do need to be considering it so good point there",
+      "created_at": "2020-05-14T18:17:42.499Z"
+    },
+    {
+      "text": "for the the way that these types of streams work",
+      "created_at": "2020-05-14T18:17:48.502Z"
+    },
+    {
+      "text": "if you're if you're sending it to him",
+      "created_at": "2020-05-14T18:17:51.504Z"
+    },
+    {
+      "text": "close the workload self is going to execute exactly once if it's a standard workflow 210 Express workflow it won't so you'll need to consider that for",
+      "created_at": "2020-05-14T18:18:03.506Z"
+    },
+    {
+      "text": "when you're storing it to dynamodb",
+      "created_at": "2020-05-14T18:18:06.515Z"
+    },
+    {
+      "text": "From oltp perspective",
+      "created_at": "2020-05-14T18:18:09.507Z"
+    },
+    {
+      "text": "it's largely not an issue if you write it twice and that's why I put item in dynamodb is both create item in update item if you override it with the same exact information including the transaction ID",
+      "created_at": "2020-05-14T18:18:25.508Z"
+    },
+    {
+      "text": "haven't really cause anything to occur unless you're consuming that Downstream",
+      "created_at": "2020-05-14T18:18:30.506Z"
+    },
+    {
+      "text": "dynamodb streams and then that's where you need to consider it sort of the same for an S3 bucket right if you dump this in multiple times for this hola Flo it doesn't matter because you're really only overriding the object and then you you don't run your analytics and real time with this example you run your analytics and batches after the fact",
+      "created_at": "2020-05-14T18:18:50.498Z"
+    },
+    {
+      "text": "so",
+      "created_at": "2020-05-14T18:18:52.518Z"
+    },
+    {
+      "text": "in some cases it matters but make sure that",
+      "created_at": "2020-05-14T18:18:56.506Z"
+    },
+    {
+      "text": "application architecture really requires it",
+      "created_at": "2020-05-14T18:18:59.502Z"
+    },
+    {
+      "text": "a lot of cases it's okay it's like eventual consistency right like a lot of times it's okay to have eventual consistency but if it's not you need to know what you need to know how to manage it",
+      "created_at": "2020-05-14T18:19:09.511Z"
+    },
+    {
+      "text": "let's stop over to look at the code",
+      "created_at": "2020-05-14T18:19:14.511Z"
+    },
+    {
+      "text": "and I've collapsed all of this stuff here for us real quick I've gone ahead and deployed all of these Stacks because there's a lot going on we're only going to be dealing with the infrastructure and billing today",
+      "created_at": "2020-05-14T18:19:29.504Z"
+    },
+    {
+      "text": "I just wanted you to see that they're already there when you start wondering why I'm not writing to some real X cuz it's complicated so I want to talk about event bridge to fire hose first",
+      "created_at": "2020-05-14T18:19:44.507Z"
+    },
+    {
+      "text": "thanks for the extra height thank you thanks for the great question",
+      "created_at": "2020-05-14T18:19:51.502Z"
+    },
+    {
+      "text": "Bristol fire hose as you saw from the original episode when we have Enbridge we need a rule that rule needs a Target",
+      "created_at": "2020-05-14T18:19:58.500Z"
+    },
+    {
+      "text": "and",
+      "created_at": "2020-05-14T18:20:00.506Z"
+    },
+    {
+      "text": "in a RN for role as well",
+      "created_at": "2020-05-14T18:20:04.506Z"
+    },
+    {
+      "text": "that's exactly what we have here we have a transaction rule we're going to listen for transaction initiated events",
+      "created_at": "2020-05-14T18:20:11.511Z"
+    },
+    {
+      "text": "which we see here and they're going to send them to a couple targets",
+      "created_at": "2020-05-14T18:20:15.509Z"
+    },
+    {
+      "text": "let me minimize the step functions Target for now so that we're this is all we need",
+      "created_at": "2020-05-14T18:20:22.526Z"
+    },
+    {
+      "text": "to get it sent over to Kinesis data firehose",
+      "created_at": "2020-05-14T18:20:26.510Z"
+    },
+    {
+      "text": "with the right permissions right you've always got to get your IAM permissions",
+      "created_at": "2020-05-14T18:20:30.513Z"
+    },
+    {
+      "text": "so we'll use this transaction fire hose roll",
+      "created_at": "2020-05-14T18:20:36.504Z"
+    },
+    {
+      "text": "little comes out of the doc's these like don't be frightened by any of this stuff this all comes out of the docks",
+      "created_at": "2020-05-14T18:20:46.509Z"
+    },
+    {
+      "text": "but we need to be able to write",
+      "created_at": "2020-05-14T18:20:49.503Z"
+    },
+    {
+      "text": "objects into our bucket this is",
+      "created_at": "2020-05-14T18:20:51.509Z"
+    },
+    {
+      "text": "the raw data bucket",
+      "created_at": "2020-05-14T18:20:54.507Z"
+    },
+    {
+      "text": "all the objects in it and the process data bucket and all the objects in it and then again when you look at glue",
+      "created_at": "2020-05-14T18:21:03.509Z"
+    },
+    {
+      "text": "I sort of shortcut adhere to avoid having the same thing built for all of them but you need to be able to call these three operations these are less relevant today we can have a tightened up policy for next week if it's more relevant next week when we go to Athena",
+      "created_at": "2020-05-14T18:21:20.507Z"
+    },
+    {
+      "text": "I did want to include it so that you can see that there's another step in there",
+      "created_at": "2020-05-14T18:21:25.507Z"
+    },
+    {
+      "text": "Tempest kluski modified",
+      "created_at": "2020-05-14T18:21:27.513Z"
+    },
+    {
+      "text": "that when we Define the pipeline itself",
+      "created_at": "2020-05-14T18:21:30.506Z"
+    },
+    {
+      "text": "to get from event Bridge",
+      "created_at": "2020-05-14T18:21:33.512Z"
+    },
+    {
+      "text": "I just showed you the wrong role that's what I was wondering",
+      "created_at": "2020-05-14T18:21:35.504Z"
+    },
+    {
+      "text": "complicated to get from event bridge this is just like what we used in the customers microservice before to get from event Bridge the firehose you just need a role that can be assumed by events and it needs to be able to put record and put record batch on to your fire hose and that's it so this is actually properly scope down",
+      "created_at": "2020-05-14T18:21:56.509Z"
+    },
+    {
+      "text": "so that'll get our resources into the fire hose",
+      "created_at": "2020-05-14T18:22:02.507Z"
+    },
+    {
+      "text": "from there we need to get them out",
+      "created_at": "2020-05-14T18:22:09.511Z"
+    },
+    {
+      "text": "that's where the firehose Declaration comes in",
+      "created_at": "2020-05-14T18:22:11.510Z"
+    },
+    {
+      "text": "so",
+      "created_at": "2020-05-14T18:22:18.513Z"
+    },
+    {
+      "text": "don't name your S3 buckets",
+      "created_at": "2020-05-14T18:22:21.512Z"
+    },
+    {
+      "text": "doesn't matter in reality you're probably get these as parameters from somewhere else",
+      "created_at": "2020-05-14T18:22:26.514Z"
+    },
+    {
+      "text": "production application because you said we have a raw data bucket and a process data bucket",
+      "created_at": "2020-05-14T18:22:32.511Z"
+    },
+    {
+      "text": "and I'm going to after I show you the definition I'm going to come back and show you the difference in how these two get written out in those buckets themselves",
+      "created_at": "2020-05-14T18:22:41.504Z"
+    },
+    {
+      "text": "here we Define Igloo database",
+      "created_at": "2020-05-14T18:22:44.506Z"
+    },
+    {
+      "text": "what else app 2025 needs to be all lowercase must specify catalog ID which is just her account",
+      "created_at": "2020-05-14T18:22:50.511Z"
+    },
+    {
+      "text": "an igloo table",
+      "created_at": "2020-05-14T18:22:54.506Z"
+    },
+    {
+      "text": "again this codes going to be available for you and it's also straight from the docks so don't be alarmed by the confusion of it this is essentially your ddl for data description language for your what's really becoming a SQL query a table that's created by Athena",
+      "created_at": "2020-05-14T18:23:13.513Z"
+    },
+    {
+      "text": "so you tell it how to partition that data and you'll see that reflected when we do the transformation and fire hose",
+      "created_at": "2020-05-14T18:23:20.509Z"
+    },
+    {
+      "text": "and then you tell it the fields that you're going to store",
+      "created_at": "2020-05-14T18:23:25.514Z"
+    },
+    {
+      "text": "input format that you have to put in this",
+      "created_at": "2020-05-14T18:23:28.508Z"
+    },
+    {
+      "text": "your serialize and deserialize er this is again non-trivial but documented so definitely spend some time with the doc's on these just half an hour of reading the docks on this will prevent a lot of questions especially with the examples and then check this code",
+      "created_at": "2020-05-14T18:23:47.510Z"
+    },
+    {
+      "text": "can repo check this code once I post it after this episode as well as well as I happen to remember",
+      "created_at": "2020-05-14T18:23:56.508Z"
+    },
+    {
+      "text": "the sessions with Sam Link is in there as well for some more can you sedate a fire hose code",
+      "created_at": "2020-05-14T18:24:03.513Z"
+    },
+    {
+      "text": "but all we're doing with glue and with glue is defining a table",
+      "created_at": "2020-05-14T18:24:08.508Z"
+    },
+    {
+      "text": "so we don't really need to dive into the details of that today",
+      "created_at": "2020-05-14T18:24:12.733Z"
+    },
+    {
+      "text": "just think of it as there's a database out there",
+      "created_at": "2020-05-14T18:24:15.514Z"
+    },
+    {
+      "text": "what is a table in that database",
+      "created_at": "2020-05-14T18:24:17.510Z"
+    },
+    {
+      "text": "and in a fire hose itself",
+      "created_at": "2020-05-14T18:24:22.511Z"
+    },
+    {
+      "text": "get crazy",
+      "created_at": "2020-05-14T18:24:25.513Z"
+    },
+    {
+      "text": "so we have direct put witch",
+      "created_at": "2020-05-14T18:24:30.512Z"
+    },
+    {
+      "text": "call Steve Edwards to put into it",
+      "created_at": "2020-05-14T18:24:32.509Z"
+    },
+    {
+      "text": "we have the bucket extended S3 destination configuration there's a S3 destination configurations it's pretty simple if all you're going to do is Dump records into S3 but if you're going to transform them like we're doing here you're going to need to use the extended configuration because it lets you choose Siri eliezer's unless you Tuesday to format select to choose compression and several other things so what we're giving you here in this code is a pretty",
+      "created_at": "2020-05-14T18:25:03.512Z"
+    },
+    {
+      "text": "production-ready example that will handle very large loads but cuz it's using Park and zip compression",
+      "created_at": "2020-05-14T18:25:11.511Z"
+    },
+    {
+      "text": "one thing you need to focus on",
+      "created_at": "2020-05-14T18:25:15.515Z"
+    },
+    {
+      "text": "when you're doing the transformation you have to set your compression format to uncompressed that's because the cereal leiser handles compression for you at the end if you send compressed data into the sea realizer it doesn't know how to handle it so you'll see here we have this data format conversion block",
+      "created_at": "2020-05-14T18:25:36.512Z"
+    },
+    {
+      "text": "what's taking our format from Json to parquet",
+      "created_at": "2020-05-14T18:25:43.506Z"
+    },
+    {
+      "text": "in the end that Park AC realizer is going to compress it using Jesus",
+      "created_at": "2020-05-14T18:25:48.512Z"
+    },
+    {
+      "text": "so we save on storage we get that good",
+      "created_at": "2020-05-14T18:25:52.510Z"
+    },
+    {
+      "text": "fast searchable columnar parquet format",
+      "created_at": "2020-05-14T18:25:57.516Z"
+    },
+    {
+      "text": "we want to use and then for the schema configuration it's that same catalog ID reference to database reference to region our own role with those permissions that I showed you earlier and the table name and we just locked to latest here",
+      "created_at": "2020-05-14T18:26:15.511Z"
+    },
+    {
+      "text": "do versioning and aliases but we just locked on the latest version",
+      "created_at": "2020-05-14T18:26:19.519Z"
+    },
+    {
+      "text": "always get the latest version of the schema",
+      "created_at": "2020-05-14T18:26:21.508Z"
+    },
+    {
+      "text": "I'm going to come back to this error prefix and air output prefix last because that's where you actually see the difference in the buckets",
+      "created_at": "2020-05-14T18:26:32.520Z"
+    },
+    {
+      "text": "so for buffering hence that's how long that can you sedate a fire hose is going to allow records to accumulate before 2 temps of right if you'll notice down here in the buffering hints for the backup configuration it's 60 and one that's because we're just riding raw events they're up here it's 60 and 64 so when you do a parquet data format transformation",
+      "created_at": "2020-05-14T18:27:00.513Z"
+    },
+    {
+      "text": "what size in megabytes is 64",
+      "created_at": "2020-05-14T18:27:03.513Z"
+    },
+    {
+      "text": "we're going to give you this code it's in the docks and it's also some of the best errors that I've seen from cloud formation with Kinesis data firehose it tells you exactly what's wrong in that the minimum size has to be 64 if you try to do that as one so really good stuff here",
+      "created_at": "2020-05-14T18:27:19.514Z"
+    },
+    {
+      "text": "buffering hence how long it's going to buffer before writing out",
+      "created_at": "2020-05-14T18:27:23.513Z"
+    },
+    {
+      "text": "S3 backup mode is enabled if you enable it you have to provide a configuration we just give it to a RN of the bucket we created",
+      "created_at": "2020-05-14T18:27:31.511Z"
+    },
+    {
+      "text": "we want to compress it there too we give it the same role and that's that okay",
+      "created_at": "2020-05-14T18:27:37.518Z"
+    },
+    {
+      "text": "so",
+      "created_at": "2020-05-14T18:27:40.511Z"
+    },
+    {
+      "text": "is for our transformation of records that come in",
+      "created_at": "2020-05-14T18:27:45.534Z"
+    },
+    {
+      "text": "what does venom look like",
+      "created_at": "2020-05-14T18:27:49.514Z"
+    },
+    {
+      "text": "is we're going to give it this year and then we parse the timestamp for the 4-Digit year month day and our prefix and this means it in our bucket",
+      "created_at": "2020-05-14T18:28:03.515Z"
+    },
+    {
+      "text": "first word joining the table which is transactions",
+      "created_at": "2020-05-14T18:28:07.515Z"
+    },
+    {
+      "text": "then all of this stuff",
+      "created_at": "2020-05-14T18:28:10.515Z"
+    },
+    {
+      "text": "so in this case will have transactions error",
+      "created_at": "2020-05-14T18:28:17.515Z"
+    },
+    {
+      "text": "power output type",
+      "created_at": "2020-05-14T18:28:19.512Z"
+    },
+    {
+      "text": "and then around rag that and then all of that stuff again",
+      "created_at": "2020-05-14T18:28:24.514Z"
+    },
+    {
+      "text": "so it's a way of preparing that bucket to look like a SQL table via the glue schema so that Athena can read it later",
+      "created_at": "2020-05-14T18:28:33.514Z"
+    },
+    {
+      "text": "so take a look at what these look like",
+      "created_at": "2020-05-14T18:28:39.509Z"
+    },
+    {
+      "text": "alright S3 this is A-Rod dating bucket",
+      "created_at": "2020-05-14T18:28:47.522Z"
+    },
+    {
+      "text": "sent one event through here and in fact let me go ahead and",
+      "created_at": "2020-05-14T18:28:51.521Z"
+    },
+    {
+      "text": "how to get in here I'm going to send another but you see it's May 14th the last Wendy's rutc times the last one was sent it 17 or into 18 now and we had these records so let me go back over here and send one because you do have to wait for that minute",
+      "created_at": "2020-05-14T18:29:10.519Z"
+    },
+    {
+      "text": "Britt too sweetie we get an event ID that we can use to track everything later that's actually going to be a transaction ID but you do have to wait a minute for that buffer to fill up cuz we're not going to reach a megabyte with a single event or 60",
+      "created_at": "2020-05-14T18:29:22.520Z"
+    },
+    {
+      "text": "lights with a single event so it's going to wait until after it's filled up and then it's going to write them out so we'll kick that off",
+      "created_at": "2020-05-14T18:29:30.516Z"
+    },
+    {
+      "text": "but we see we have these events in our raw data bucket",
+      "created_at": "2020-05-14T18:29:37.517Z"
+    },
+    {
+      "text": "my date so it hasn't done any transformation it's not aware of a glue schema not aware of Parkay it's not aware of anything it's just going year month day hour",
+      "created_at": "2020-05-14T18:29:51.512Z"
+    },
+    {
+      "text": "and then this will download",
+      "created_at": "2020-05-14T18:29:53.517Z"
+    },
+    {
+      "text": "and open",
+      "created_at": "2020-05-14T18:29:55.514Z"
+    },
+    {
+      "text": "I'll bring this in here",
+      "created_at": "2020-05-14T18:30:02.734Z"
+    },
+    {
+      "text": "make a Json object at it",
+      "created_at": "2020-05-14T18:30:08.514Z"
+    },
+    {
+      "text": "and then we see we've got the same event",
+      "created_at": "2020-05-14T18:30:12.523Z"
+    },
+    {
+      "text": "in its raw form at detail customer ID at cetera I know it's a little small to see if it's open in Visual Studio",
+      "created_at": "2020-05-14T18:30:19.513Z"
+    },
+    {
+      "text": "there we go",
+      "created_at": "2020-05-14T18:30:22.516Z"
+    },
+    {
+      "text": "document minimize this",
+      "created_at": "2020-05-14T18:30:24.515Z"
+    },
+    {
+      "text": "account",
+      "created_at": "2020-05-14T18:30:29.519Z"
+    },
+    {
+      "text": "so if we look at this side-by-side with the event that we passed it",
+      "created_at": "2020-05-14T18:30:32.520Z"
+    },
+    {
+      "text": "should already be open",
+      "created_at": "2020-05-14T18:30:35.519Z"
+    },
+    {
+      "text": "we see we've got this",
+      "created_at": "2020-05-14T18:30:37.515Z"
+    },
+    {
+      "text": "same format write this customer ID initiated at Etc right to customer ID initiated at from account this is just like the event Bridge events that we've seen the whole time right there's a source there is a detail type",
+      "created_at": "2020-05-14T18:30:55.520Z"
+    },
+    {
+      "text": "some information around the record itself that we got and then the body that we provide it",
+      "created_at": "2020-05-14T18:31:03.512Z"
+    },
+    {
+      "text": "so I'm done any kind of transformation any kind of anything to this",
+      "created_at": "2020-05-14T18:31:08.523Z"
+    },
+    {
+      "text": "but if we go back here now",
+      "created_at": "2020-05-14T18:31:13.517Z"
+    },
+    {
+      "text": "we see the indeed our new event came through and we can download that and do it as well so these are the raw events bucket name year month date hour",
+      "created_at": "2020-05-14T18:31:27.518Z"
+    },
+    {
+      "text": "if we look in our process bucket this is our glue table name that we gave it let's go back here",
+      "created_at": "2020-05-14T18:31:34.518Z"
+    },
+    {
+      "text": "we gave it the table name of",
+      "created_at": "2020-05-14T18:31:42.523Z"
+    },
+    {
+      "text": "transactions",
+      "created_at": "2020-05-14T18:31:44.516Z"
+    },
+    {
+      "text": "right so as expected just did what we asked it to joined it with the table name and then the next thing we should expect to see is this year equals 2020",
+      "created_at": "2020-05-14T18:31:59.523Z"
+    },
+    {
+      "text": "and we do so this will go into where queries right so select from The Source where from transactions where year equals 2020 and month equals 5 and 8 equals 14 right so it does this sort of transformative naming for us so that we see and then here's the same event",
+      "created_at": "2020-05-14T18:32:22.519Z"
+    },
+    {
+      "text": "and you see this is a parquet file so there's really nothing for me to do with this I don't have a parquet viewer",
+      "created_at": "2020-05-14T18:32:32.519Z"
+    },
+    {
+      "text": "an opening text I didn't you'll see it opens okay I'll see if I can zoom in on this little bit of binary characters there but you see this is a they Define The Columns and then the data Etc right so we see that it has been transformed into the parquet format for us",
+      "created_at": "2020-05-14T18:32:51.514Z"
+    },
+    {
+      "text": "so that's the difference in the Raw bucket and the process bucket or as it defines them",
+      "created_at": "2020-05-14T18:33:02.528Z"
+    },
+    {
+      "text": "the S3 backup",
+      "created_at": "2020-05-14T18:33:05.516Z"
+    },
+    {
+      "text": "but the raw bucket",
+      "created_at": "2020-05-14T18:33:07.522Z"
+    },
+    {
+      "text": "and the bucket they are in for process data",
+      "created_at": "2020-05-14T18:33:11.514Z"
+    },
+    {
+      "text": "so",
+      "created_at": "2020-05-14T18:33:14.533Z"
+    },
+    {
+      "text": "at this point we've taken the data onto the bus",
+      "created_at": "2020-05-14T18:33:17.513Z"
+    },
+    {
+      "text": "and we've sent it out to Kinesis data firehose Kinesis data firehose has saved a copy unmodified and then it's taken it and transformed it to park a handwritten it out according to an AWS glue schema so that we can search it next week with Amazon Athena there's a lot going on here right already are there any questions at this point because the next part is easier so this is it's better to ask your questions now if you have them",
+      "created_at": "2020-05-14T18:33:49.517Z"
+    },
+    {
+      "text": "we can dig around in this",
+      "created_at": "2020-05-14T18:33:53.523Z"
+    },
+    {
+      "text": "alright super going to drive on the next thing that we're going to do if we return to our",
+      "created_at": "2020-05-14T18:34:02.525Z"
+    },
+    {
+      "text": "diagram",
+      "created_at": "2020-05-14T18:34:04.526Z"
+    },
+    {
+      "text": "we've done this already",
+      "created_at": "2020-05-14T18:34:07.530Z"
+    },
+    {
+      "text": "and now we know that we've got that stable there we need to send this over to a workflow that doesn't processing and this in fact is going to store directly into dynamodb",
+      "created_at": "2020-05-14T18:34:20.518Z"
+    },
+    {
+      "text": "inter",
+      "created_at": "2020-05-14T18:34:25.518Z"
+    },
+    {
+      "text": "Prince we can just put that there",
+      "created_at": "2020-05-14T18:34:31.519Z"
+    },
+    {
+      "text": "so we're not going to put a Lambda function in between we're just going to go direct to dynamodb",
+      "created_at": "2020-05-14T18:34:36.522Z"
+    },
+    {
+      "text": "let's I do",
+      "created_at": "2020-05-14T18:34:41.520Z"
+    },
+    {
+      "text": "let's hide some of this",
+      "created_at": "2020-05-14T18:34:44.519Z"
+    },
+    {
+      "text": "the firehose has done its job",
+      "created_at": "2020-05-14T18:34:48.524Z"
+    },
+    {
+      "text": "that we want to go back and look at the rule as well",
+      "created_at": "2020-05-14T18:34:54.525Z"
+    },
+    {
+      "text": "we didn't this before right so we still got the same rules it's going to capture the same event and it's just sending to two Targets one of them is a fire hose and one of them is step functions workflow",
+      "created_at": "2020-05-14T18:35:06.527Z"
+    },
+    {
+      "text": "so for this one I've given us an example of an input Transformer",
+      "created_at": "2020-05-14T18:35:11.528Z"
+    },
+    {
+      "text": "everything up until here you've seen before",
+      "created_at": "2020-05-14T18:35:14.522Z"
+    },
+    {
+      "text": "it's the same as the last one you're just referencing a step functions workflow giving it a human-readable name and giving event bridge and IAM role to assume to invoke that workflow",
+      "created_at": "2020-05-14T18:35:27.524Z"
+    },
+    {
+      "text": "the one thing that we've done differently is we've given ourselves an input Transformer here",
+      "created_at": "2020-05-14T18:35:32.519Z"
+    },
+    {
+      "text": "sew-in event Bridge",
+      "created_at": "2020-05-14T18:35:36.521Z"
+    },
+    {
+      "text": "or we invoke that workflow",
+      "created_at": "2020-05-14T18:35:39.519Z"
+    },
+    {
+      "text": "we pass it an object we're going to transform that object let me do that with the input Transformer",
+      "created_at": "2020-05-14T18:35:45.523Z"
+    },
+    {
+      "text": "and this is the input paths map and then there's an output that's a template",
+      "created_at": "2020-05-14T18:35:51.526Z"
+    },
+    {
+      "text": "if you're familiar with defining items in dynamodb like item attribute where you have to Define if something is a string and in reference it by another name it's a very similar concept here so this is Jason path notation against similar to what we're used to. Functions it just means out of that top-level object let me split this so we can see",
+      "created_at": "2020-05-14T18:36:16.521Z"
+    },
+    {
+      "text": "Pride that's the one that I just sent over and I keep sending back",
+      "created_at": "2020-05-14T18:36:19.522Z"
+    },
+    {
+      "text": "we can update it for fun just to make it different",
+      "created_at": "2020-05-14T18:36:24.529Z"
+    },
+    {
+      "text": "doesn't really matter",
+      "created_at": "2020-05-14T18:36:28.528Z"
+    },
+    {
+      "text": "so this is the event that we're going to send but remember all of this is going to be wrapped in the event",
+      "created_at": "2020-05-14T18:36:35.528Z"
+    },
+    {
+      "text": "rapper so this becomes the detail",
+      "created_at": "2020-05-14T18:36:38.527Z"
+    },
+    {
+      "text": "sorry that's not true",
+      "created_at": "2020-05-14T18:36:40.526Z"
+    },
+    {
+      "text": "details in here as a detail",
+      "created_at": "2020-05-14T18:36:42.527Z"
+    },
+    {
+      "text": "the only thing that happens is it gets an event ID added to it",
+      "created_at": "2020-05-14T18:36:47.529Z"
+    },
+    {
+      "text": "we're going to call this transaction ID the unique identifier that's generated by event Bridge",
+      "created_at": "2020-05-14T18:36:54.521Z"
+    },
+    {
+      "text": "our customer ID is in this object in detail custom",
+      "created_at": "2020-05-14T18:36:58.522Z"
+    },
+    {
+      "text": "and you see we just extract these other fields they received they time we extract from the event object",
+      "created_at": "2020-05-14T18:37:06.521Z"
+    },
+    {
+      "text": "all of his stuff you don't",
+      "created_at": "2020-05-14T18:37:09.522Z"
+    },
+    {
+      "text": "find these yourself when you're putting them on to the bus there defined in this case because it's debug the time becomes the time",
+      "created_at": "2020-05-14T18:37:16.522Z"
+    },
+    {
+      "text": "you do to find the others",
+      "created_at": "2020-05-14T18:37:19.518Z"
+    },
+    {
+      "text": "but so we take all of these and we give them referential names",
+      "created_at": "2020-05-14T18:37:25.520Z"
+    },
+    {
+      "text": "and now we have this",
+      "created_at": "2020-05-14T18:37:29.536Z"
+    },
+    {
+      "text": "now that we've extracted them out into this Ma",
+      "created_at": "2020-05-14T18:37:32.527Z"
+    },
+    {
+      "text": "we use this template and here it's a foul",
+      "created_at": "2020-05-14T18:37:39.533Z"
+    },
+    {
+      "text": "quotes around these fields okay so don't do that",
+      "created_at": "2020-05-14T18:37:43.531Z"
+    },
+    {
+      "text": "tell you again documentation on this is great it'll tell you that you can't",
+      "created_at": "2020-05-14T18:37:46.528Z"
+    },
+    {
+      "text": "quotes around variables in your Transformer",
+      "created_at": "2020-05-14T18:37:51.523Z"
+    },
+    {
+      "text": "what you use this angle bracket",
+      "created_at": "2020-05-14T18:37:53.525Z"
+    },
+    {
+      "text": "to refer back to these",
+      "created_at": "2020-05-14T18:37:56.524Z"
+    },
+    {
+      "text": "so ultimately what this means is",
+      "created_at": "2020-05-14T18:38:00.530Z"
+    },
+    {
+      "text": "pass for step functions workflow an input object",
+      "created_at": "2020-05-14T18:38:05.536Z"
+    },
+    {
+      "text": "the top-level key of transaction ID that works out to be the unique identifier assigned by of Enbridge a top-level key of customer ID that works out to be the detail. Customer ID field from our event the received time that works out to be the time of the event Etc right so you can shape this object before passing it over",
+      "created_at": "2020-05-14T18:38:30.527Z"
+    },
+    {
+      "text": "then we look at that workflow",
+      "created_at": "2020-05-14T18:38:36.525Z"
+    },
+    {
+      "text": "it's a very standard workflow",
+      "created_at": "2020-05-14T18:38:41.528Z"
+    },
+    {
+      "text": "we see that we have two states here one write it out to dynamodb and",
+      "created_at": "2020-05-14T18:38:48.532Z"
+    },
+    {
+      "text": "is just publish it",
+      "created_at": "2020-05-14T18:38:51.526Z"
+    },
+    {
+      "text": "to the event bus",
+      "created_at": "2020-05-14T18:38:54.525Z"
+    },
+    {
+      "text": "Wallace's account normalize Barracks publishing it as transaction process so I mean",
+      "created_at": "2020-05-14T18:39:01.532Z"
+    },
+    {
+      "text": "update that here for you",
+      "created_at": "2020-05-14T18:39:03.525Z"
+    },
+    {
+      "text": "publishing it as a transaction processed event",
+      "created_at": "2020-05-14T18:39:09.525Z"
+    },
+    {
+      "text": "the same bus and sending it",
+      "created_at": "2020-05-14T18:39:13.524Z"
+    },
+    {
+      "text": "this detail information in the event right so this is how we",
+      "created_at": "2020-05-14T18:39:20.527Z"
+    },
+    {
+      "text": "is it reminds me a lot of what I see at Whole Foods",
+      "created_at": "2020-05-14T18:39:25.524Z"
+    },
+    {
+      "text": "I don't know where to go with that but all right",
+      "created_at": "2020-05-14T18:39:32.543Z"
+    },
+    {
+      "text": "your Prime now Shopper all right",
+      "created_at": "2020-05-14T18:39:38.529Z"
+    },
+    {
+      "text": "me too",
+      "created_at": "2020-05-14T18:39:41.529Z"
+    },
+    {
+      "text": "what's up we'll put this directly into dynamodb",
+      "created_at": "2020-05-14T18:39:45.526Z"
+    },
+    {
+      "text": "will take that returned object from dynamodb and put it in our result path",
+      "created_at": "2020-05-14T18:39:53.526Z"
+    },
+    {
+      "text": "and then we'll publish it back onto the event bus",
+      "created_at": "2020-05-14T18:39:58.529Z"
+    },
+    {
+      "text": "curious as to how we use our database",
+      "created_at": "2020-05-14T18:40:00.525Z"
+    },
+    {
+      "text": "didn't know if you seek or dynamodb okay got you",
+      "created_at": "2020-05-14T18:40:05.547Z"
+    },
+    {
+      "text": "the answer is you probably use both and sort of the generic best practice unless you know otherwise is to use dynamodb for oltp like we're doing here and use some sort of SQL database or data warehouse for your analytics because dynamodb excels at transaction processing but you don't want to be running a bunch of scans on it sequel is of a solved problem so you're probably using both together",
+      "created_at": "2020-05-14T18:40:38.537Z"
+    },
+    {
+      "text": "S3 and Amazon Athena might have been redshift might have been something else so",
+      "created_at": "2020-05-14T18:40:45.533Z"
+    },
+    {
+      "text": "all right",
+      "created_at": "2020-05-14T18:40:48.534Z"
+    },
+    {
+      "text": "so from here we've got this published",
+      "created_at": "2020-05-14T18:40:54.529Z"
+    },
+    {
+      "text": "and we can go back to her step functions console",
+      "created_at": "2020-05-14T18:40:58.526Z"
+    },
+    {
+      "text": "that look like for our most recent execution so it's the one that we ran in the middle of the show",
+      "created_at": "2020-05-14T18:41:03.531Z"
+    },
+    {
+      "text": "got that same event ID that we had before",
+      "created_at": "2020-05-14T18:41:08.533Z"
+    },
+    {
+      "text": "and we can look at the the flows again as we come through this transaction ID doesn't look like the information that we passed it right we go back to visual studio code this is the event that we passed in the event had all of this information and initiated at field at from account field but because of our input Transformer we instead of a from account we have Source account instead of initiated at we have requested they time so it's a way that you can if you have a legacy workflow that you need to consume new standardized events like you've standardized on a certain schema but you don't have time to",
+      "created_at": "2020-05-14T18:41:55.531Z"
+    },
+    {
+      "text": "new standardized schema and shape it the way that your legacy workflow expects it",
+      "created_at": "2020-05-14T18:42:01.543Z"
+    },
+    {
+      "text": "so you don't have to go through making breaking changes to",
+      "created_at": "2020-05-14T18:42:04.526Z"
+    },
+    {
+      "text": "you can just leave it in place even though other applications are now putting events onto the bus in the correct format so there's a really powerful migration pattern",
+      "created_at": "2020-05-14T18:42:13.523Z"
+    },
+    {
+      "text": "always remember this if you're trying to bring a legacy workflow into an event Bridge driven application",
+      "created_at": "2020-05-14T18:42:23.537Z"
+    },
+    {
+      "text": "can we send her something Amazon Flex are probably using Dynamo probably but I do not know how those applications are built internally",
+      "created_at": "2020-05-14T18:42:32.533Z"
+    },
+    {
+      "text": "and then again we can check ourselves this is the dynamodb output that we get from there and we publish that event back onto the bus",
+      "created_at": "2020-05-14T18:42:42.542Z"
+    },
+    {
+      "text": "go to Publix that we see this is the response from event Bridge or we get a copy of the payload back we get the event ID so we'll know that that has come through we haven't actually pick this event up so we won't see it anywhere but we get all the other information about it so then we can come over here",
+      "created_at": "2020-05-14T18:42:59.529Z"
+    },
+    {
+      "text": "and again here's our our happy little event",
+      "created_at": "2020-05-14T18:43:05.532Z"
+    },
+    {
+      "text": "drive right with",
+      "created_at": "2020-05-14T18:43:07.524Z"
+    },
+    {
+      "text": "account instead of from account and requested date time instead of initiated up",
+      "created_at": "2020-05-14T18:43:12.525Z"
+    },
+    {
+      "text": "when there are Transmissions does data mismatch",
+      "created_at": "2020-05-14T18:43:19.527Z"
+    },
+    {
+      "text": "I need depends on how you can how you configure it so it's up to you to match the data that you expect and the data that you sent right one powerful tool for this again is schema registry in event Bridge",
+      "created_at": "2020-05-14T18:43:41.534Z"
+    },
+    {
+      "text": "I do find that sometimes items don't always match that's correct",
+      "created_at": "2020-05-14T18:43:48.531Z"
+    },
+    {
+      "text": "can help you with this if you haven't checked into schemas in a Ben Bridge and the schema registry that's another good tool if you use that to build your your applications and you already know you also have schema discovery that we recommend you enable in sub production environments because it lets you see when parents events start getting published onto the bus right so if you start seeing a new event that you didn't expect or Define that's probably an error in that application and you want to hit the pause button and investigate that a little further to see what's going on there and I will help you with this data back and forth",
+      "created_at": "2020-05-14T18:44:28.533Z"
+    },
+    {
+      "text": "so at this point we can see we've got data from a single event coming into a couple different places right we've got data from that event it's making its way through our online online transaction processing workflow and step functions and being stored into our dynamodb table it's making its way through a nola prep flow where the data is being transformed and sword in the S3 according to a AWS glue schema so that we can run queries against it later",
+      "created_at": "2020-05-14T18:45:00.533Z"
+    },
+    {
+      "text": "all of this has happened without any AWS Lambda functions at this point so we don't have",
+      "created_at": "2020-05-14T18:45:07.532Z"
+    },
+    {
+      "text": "vulnerabilities liabilities and",
+      "created_at": "2020-05-14T18:45:11.534Z"
+    },
+    {
+      "text": "they are dependencies to maintain we have this entirely declarative configuration that gets us from into End Zone fact at this point in the entire application we've done event bridge at the backbone of your app we don't express work clothes for short running processes we've done long-running workflows for human interaction done service Integrations I feel like I'm missing one at this point I may well be missing one of my own shows but out of all of these shows we've written one Lambda function",
+      "created_at": "2020-05-14T18:45:43.542Z"
+    },
+    {
+      "text": "and we've only written that function to",
+      "created_at": "2020-05-14T18:45:46.536Z"
+    },
+    {
+      "text": "add a back onto the event Bridge bus for services that don't have a direct service integration with it so it's a generic function",
+      "created_at": "2020-05-14T18:45:56.539Z"
+    },
+    {
+      "text": "I'm trying to find my own my own link here and I can't",
+      "created_at": "2020-05-14T18:46:03.527Z"
+    },
+    {
+      "text": "anyway",
+      "created_at": "2020-05-14T18:46:05.528Z"
+    },
+    {
+      "text": "four or five episodes I'm a little tired but in all of those episodes across all of the fifth episode",
+      "created_at": "2020-05-14T18:46:14.538Z"
+    },
+    {
+      "text": "all of those episodes",
+      "created_at": "2020-05-14T18:46:17.535Z"
+    },
+    {
+      "text": "oh we did simplifying architecture with Amazon SNS an Amazon sqs so across all of us episodes we've only had to write one Lambda function and again as I said that was just a function to merge some of these Services back with event Bridge so there's a real powerful pattern here right you can sort of take this entire repository and clone it and the length of function should be in there this is not an anti lamb to show their important they matter but that's where your business logic goes that's where you're you're special sauce your company's value-add should be is in those Lambda function not in making these Services talk to one another right so what",
+      "created_at": "2020-05-14T18:47:02.544Z"
+    },
+    {
+      "text": "for a fully distributed fully decoupled fully resilient fully serverless",
+      "created_at": "2020-05-14T18:47:10.533Z"
+    },
+    {
+      "text": "application that handles all of your needs",
+      "created_at": "2020-05-14T18:47:15.536Z"
+    },
+    {
+      "text": "now you need to plug your actual business processes into them",
+      "created_at": "2020-05-14T18:47:20.541Z"
+    },
+    {
+      "text": "hopefully this is been",
+      "created_at": "2020-05-14T18:47:23.532Z"
+    },
+    {
+      "text": "useful for so far gdjg but this is number 5 he's got the playlist there for you",
+      "created_at": "2020-05-14T18:47:30.532Z"
+    },
+    {
+      "text": "and back before when you said you think it's human error just data transfer problems I data transfer is pretty reliable at this point I would say it's largely human error write the problem with machines as they do exactly what we tell them to do so if they're not doing what we want it probably means we didn't communicate clearly enough to the machine what our expectation was his little life lesson in there for some of us but yeah it's it's generally going to be human error",
+      "created_at": "2020-05-14T18:48:03.528Z"
+    },
+    {
+      "text": "instead in a sub production environment or even sampling in a production environment is such a powerful tool because when one of those Aaron messages comes in you discover it and you can take action for it",
+      "created_at": "2020-05-14T18:48:16.552Z"
+    },
+    {
+      "text": "so",
+      "created_at": "2020-05-14T18:48:18.536Z"
+    },
+    {
+      "text": "let me see again we didn't mind any of the data inside our state machine for the past eight we can I've already done a step functions episode on that I suggest you to",
+      "created_at": "2020-05-14T18:48:30.539Z"
+    },
+    {
+      "text": "check that one out it's the service Integrations one so I will drop that link here",
+      "created_at": "2020-05-14T18:48:37.533Z"
+    },
+    {
+      "text": "Maybe",
+      "created_at": "2020-05-14T18:48:43.534Z"
+    },
+    {
+      "text": "there",
+      "created_at": "2020-05-14T18:48:47.540Z"
+    },
+    {
+      "text": "make sure we built everything yeah",
+      "created_at": "2020-05-14T18:48:51.531Z"
+    },
+    {
+      "text": "so that's that's pretty",
+      "created_at": "2020-05-14T18:48:53.544Z"
+    },
+    {
+      "text": "it for today's episode subject to your questions so what we've done we've learned that service Integrations allow us to process and transform data without invoking Lambda functions whenever we're moving information between services",
+      "created_at": "2020-05-14T18:49:08.539Z"
+    },
+    {
+      "text": "Amazon Kinesis data firehose has a purely serverless",
+      "created_at": "2020-05-14T18:49:12.538Z"
+    },
+    {
+      "text": "it allows us to stream data into Amazon S3 Amazon redshift Amazon elasticsearch service and Splunk so that we can use one event for multiple types of workloads we've learned that event Bridge can directly Target can he sustain a fire hose with its rules so a service integration that ultimately allows you to get data from a vent Bridge into any of those for services without writing Lambda functions",
+      "created_at": "2020-05-14T18:49:44.535Z"
+    },
+    {
+      "text": "how to use the step functions dynamodb service integration pattern to write data directly into a table it's the same thing to read data out from it",
+      "created_at": "2020-05-14T18:49:52.544Z"
+    },
+    {
+      "text": "you just need to change the call the API call and then I've given you this pattern that we drew in are diagram for concurrent oltp olap and even search if you need it",
+      "created_at": "2020-05-14T18:50:06.542Z"
+    },
+    {
+      "text": "two I using Kinesis data firehose so I hope that's been interesting for you next week we're going to tackle how to ingest all of this data into Amazon Athena and search against it I'm going to spend between now and then I'm going to write a letter to function disorder sprays day to non-stop into our S3 bucket so that we have some good big data sets to to search through and look through but again I am crazy I'm going to use your account to do it to DJ",
+      "created_at": "2020-05-14T18:50:41.545Z"
+    },
+    {
+      "text": "next week",
+      "created_at": "2020-05-14T18:50:46.544Z"
+    },
+    {
+      "text": "your topic it'll be super cool same time and",
+      "created_at": "2020-05-14T18:50:49.536Z"
+    },
+    {
+      "text": "final episode of AWS step-function series is coming up next Tuesday at 2 p.m. on the 8th of us channel on Twitch with dropping link here for that too",
+      "created_at": "2020-05-14T18:51:00.537Z"
+    },
+    {
+      "text": "that session is going to be on nested workflows so step functions calling step functions step functions work clothes all the way down so definitely",
+      "created_at": "2020-05-14T18:51:16.537Z"
+    },
+    {
+      "text": "topic especially when you consider how you can use long-running workflows to consume Shore",
+      "created_at": "2020-05-14T18:51:20.541Z"
+    },
+    {
+      "text": "clothes and orchestrate them together and eliminate some of the the code that you don't want to be writing please join me for that otherwise I don't see any new questions coming out so yeah touring out thank you thank you for joining thanks to everybody pescatarian thanks for all the questions and I hope to see you all next week have a good weekend then go out and do some building alright bye",
+      "created_at": "2020-05-14T18:51:47.542Z"
+    }
+  ]
+}

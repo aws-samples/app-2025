@@ -1,0 +1,8 @@
+{
+  "name": "simulate-approval",
+  "version": "0.1.0",
+  "description": "Simulate human approval of a transaction in an AWS Step Functions Standard Workflow",
+  "main": "app.js",
+  "author": "SAM CLI",
+  "license": "MIT-0"
+}

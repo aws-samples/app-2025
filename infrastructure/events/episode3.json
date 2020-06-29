@@ -1,0 +1,9 @@
+[
+  {
+    "Time": "2020-04-22T20:42:00",
+    "Source": "com.anycompany",
+    "DetailType": "account-created",
+    "Detail": "{\"account-id\": \"asdf-1234-asdfasdf\", \"created-via\": \"website\", \"version\": \"0.1.0\"}",
+    "EventBusName": "AnyCompany"
+  }
+]

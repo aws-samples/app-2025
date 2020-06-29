@@ -1,0 +1,9 @@
+[
+  {
+    "Time": "2020-05-14T18:30:00",
+    "Source": "com.anycompany",
+    "DetailType": "transaction-initiated",
+    "Detail": "{\"customer-id\": \"asdf-1234-asdfasdf\", \"initiated-at\": \"2020-04-15T00:00:00Z\", \"from-account\": \"25432-1983-10982305\", \"to-account\": \"25432-1983-10982306\", \"transaction-amount\": \"928309.42\", \"version\": \"0.1.0\"}",
+    "EventBusName": "AnyCompany"
+  }
+]

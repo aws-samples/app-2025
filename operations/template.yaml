@@ -1,0 +1,72 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  operations
+
+  SAM Template for the operations microservice
+  
+Parameters:
+  EventBusName:
+    Description: The name of the EventBridge custom event bus to listen on
+    Type: String
+    Default: AnyCompany
+  
+Resources:
+  LegacyOperationRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Listen on the custom event bus for OperationPerformed events
+      EventBusName: !Ref EventBusName
+      EventPattern:
+        source:
+          - com.anycompany
+        detail-type:
+          - operation-performed
+      Targets:
+        - Arn: !Ref LegacyOperationTopic
+          Id: LegacyOperationTopic
+
+  LegacyOperationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: LegacyOperationTopic
+      Subscription:
+        - Endpoint: !GetAtt LegacyOperationQueue.Arn
+          Protocol: sqs
+  
+  LegacyOperationQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: LegacyOperationQueue
+  
+  LegacyOperationQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref LegacyOperationQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: 
+              - sqs:SendMessage
+            Principal:
+              AWS:
+                - "*"
+            Resource:
+              - !GetAtt LegacyOperationQueue.Arn
+            Condition:
+              ForAllValues:ArnEquals:
+                aws:SourceArn: !Ref LegacyOperationTopic
+
+Outputs:
+  QueueEndpoint:
+    Description: "SQS Queue Endpoint"
+    Value: !Ref LegacyOperationQueue
+
+  TopicArn:
+    Description: "SNS Topic ARN"
+    Value: !Ref LegacyOperationTopic

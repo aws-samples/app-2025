@@ -1,0 +1,411 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  billing
+
+  SAM Template for the billing microservice
+  
+Parameters:
+  EventBusName:
+    Description: The name of the EventBridge custom event bus to listen on
+    Type: String
+    Default: AnyCompany
+
+  PublishEventsFunctionArn:
+    Description: The ARN of the Lambda proxy function which puts events onto your custom event bus
+    Type: String
+    AllowedPattern: "^arn:aws:lambda:[a-zA-Z0-9_.-]+:[0-9]{12}:function:[a-zA-Z0-9_.-]+"
+
+Resources:
+
+################################################################################
+# Amazon EventBridge rule
+################################################################################
+  TransactionRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Listen on the custom event bus for TransactionInitiated events
+      EventBusName: !Ref EventBusName
+      EventPattern:
+        source:
+          - com.anycompany
+        detail-type:
+          - transaction-initiated
+      Targets:
+        # Amazon Kinesis Data Firehose for OLAP
+        - Arn: !GetAtt TransactionFirehose.Arn
+          Id: TransactionFirehose
+          RoleArn: !GetAtt PublishToFirehoseRole.Arn
+        # AWS Step Functions Standard Workflow for OLTP
+        - Arn: !Ref TransactionWorkflow
+          Id: TransactionWorkflow
+          RoleArn: !GetAtt InvokeTransactionWorkflowRole.Arn
+          InputTransformer:
+            InputPathsMap:
+              transaction_id: "$.id"
+              customer_id: "$.detail.customer-id"
+              received_datetime: "$.time"
+              requested_datetime: "$.detail.initiated-at"
+              source_account: "$.detail.from-account"
+              destination_account: "$.detail.to-account"
+              total_amount: "$.detail.transaction-amount"
+            InputTemplate: >
+              {
+                "transaction_id": <transaction_id>,
+                "customer_id": <customer_id>,
+                "received_datetime": <received_datetime>,
+                "requested_datetime": <requested_datetime>,
+                "source_account": <source_account>,
+                "destination_account": <destination_account>,
+                "total_amount": <total_amount>
+              }
+
+################################################################################
+# Amazon S3 buckets
+################################################################################
+  ## Raw data bucket
+  RawDataBucket:
+    Type: AWS::S3::Bucket
+
+  ## Converted data bucket
+  ProcessedDataBucket:
+    Type: AWS::S3::Bucket
+  
+################################################################################
+# AWS Glue database and table
+################################################################################
+  ## Glue Database
+  TransactionGlueDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput:
+        Name: app2025
+
+  ## Glue Table
+  TransactionGlueTable:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseName: !Ref TransactionGlueDatabase
+      TableInput:
+        Name: transactions
+        PartitionKeys:
+          - Name: year
+            Type: string
+          - Name: month
+            Type: string
+          - Name: day
+            Type: string
+          - Name: hour
+            Type: string
+        Retention: 0
+        TableType: EXTERNAL_TABLE
+        StorageDescriptor:
+          Columns:
+          - Name: transaction_id
+            Type: string
+          - Name: customer_id
+            Type: string
+          - Name: received_datetime
+            Type: string
+          - Name: requested_datetime
+            Type: string
+          - Name: source_account
+            Type: string
+          - Name: destination_account
+            Type: string
+          - Name: total_amount
+            Type: double
+          InputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat
+          Compressed: true
+          NumberOfBuckets: -1
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe
+            Parameters:
+              serialization.format: '1'
+          BucketColumns: []
+          SortColumns: []
+          StoredAsSubDirectories: false
+
+################################################################################
+# Amazon Kinesis Data Firehose
+################################################################################
+  ## Transaction Firehose
+  TransactionFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamType: DirectPut
+      ExtendedS3DestinationConfiguration:
+        BucketARN: !GetAtt ProcessedDataBucket.Arn
+        Prefix: !Join 
+          - ''
+          - - !Ref TransactionGlueTable
+            -  '/year=!{timestamp:YYYY}/month=!{timestamp:MM}/day=!{timestamp:dd}/hour=!{timestamp:HH}/'
+        ErrorOutputPrefix: !Join 
+          - ''
+          - - !Ref TransactionGlueTable
+            -  'error/!{firehose:error-output-type}/year=!{timestamp:YYYY}/month=!{timestamp:MM}/day=!{timestamp:dd}/hour=!{timestamp:HH}/'
+        CompressionFormat: UNCOMPRESSED
+        RoleARN: !GetAtt TransactionFirehoseRole.Arn
+        DataFormatConversionConfiguration:
+          Enabled: true
+          InputFormatConfiguration:
+            Deserializer: 
+              HiveJsonSerDe: {}
+          OutputFormatConfiguration:
+            Serializer: 
+              ParquetSerDe:
+                Compression: GZIP
+          SchemaConfiguration:
+            CatalogId: !Ref AWS::AccountId
+            DatabaseName: !Ref TransactionGlueDatabase
+            Region: !Ref AWS::Region
+            RoleARN: !GetAtt TransactionFirehoseRole.Arn
+            TableName: !Ref TransactionGlueTable
+            VersionId: LATEST
+        BufferingHints:
+          IntervalInSeconds: 60
+          SizeInMBs: 64
+        S3BackupMode: Enabled
+        S3BackupConfiguration:
+          BucketARN: !GetAtt RawDataBucket.Arn
+          CompressionFormat: GZIP
+          RoleARN: !GetAtt TransactionFirehoseRole.Arn
+          BufferingHints:
+            IntervalInSeconds: 60
+            SizeInMBs: 1
+
+################################################################################
+# Amazon DynamoDB table
+################################################################################
+  TransactionTable:
+    Type: AWS::Serverless::SimpleTable
+
+################################################################################
+# AWS Step Functions Standard Workflow
+################################################################################
+  TransactionWorkflow:
+    Description: Standard Workflow for normalizing and cleaning newly-created accounts
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: TransactionProcess
+      RoleArn: !GetAtt TransactionWorkflowRole.Arn
+      StateMachineType: STANDARD
+      DefinitionString: !Sub
+        - |-
+          {
+            "Comment": "An example of the Amazon States Language using a DynamoDB service integration.",
+            "StartAt": "Write to DynamoDB",
+            "States": {
+              "Write to DynamoDB": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::dynamodb:putItem",
+                "Parameters": {
+                  "TableName": "${TransactionTable}",
+                  "Item": {
+                    "id": {"S.$": "$.transaction_id"},
+                    "customer_id": {"S.$": "$.customer_id"},
+                    "received_datetime": {"S.$": "$.received_datetime"},
+                    "requested_datetime": {"S.$": "$.requested_datetime"},
+                    "source_account": {"S.$": "$.source_account"},
+                    "destination_account": {"S.$": "$.destination_account"},
+                    "total_amount": {"S.$": "$.total_amount"}
+                  }
+                },
+                "ResultPath": "$.DynamoDB",
+                "Next": "Publish TransactionProcessed Event"
+              },
+              "Publish TransactionProcessed Event": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::lambda:invoke",
+                "Parameters": {
+                  "FunctionName": "${PublishEventsFunctionArn}",
+                  "Payload": {
+                    "EventBusName": "${EventBusName}",
+                    "Source": "com.anycompany",
+                    "DetailType": "transaction-processed",
+                    "Detail": {
+                      "transaction_id": {"S.$": "$.transaction_id"},
+                      "customer_id": {"S.$": "$.customer_id"},
+                      "received_datetime": {"S.$": "$.received_datetime"},
+                      "requested_datetime": {"S.$": "$.requested_datetime"},
+                      "source_account": {"S.$": "$.source_account"},
+                      "destination_account": {"S.$": "$.destination_account"},
+                      "total_amount": {"S.$": "$.total_amount"}
+                    }
+                  }
+                },
+                "End": true
+              }
+            }
+          }
+        - {
+            EventBusName: !Ref EventBusName,
+            PublishEventsFunctionArn: !Ref PublishEventsFunctionArn,
+            DynamoDBTable: !Ref TransactionTable
+          }
+
+################################################################################
+# AWS IAM resources
+################################################################################
+  ## Transaction Firehose IAM Role
+  TransactionFirehoseRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "firehose.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+            Condition:
+              StringEquals:
+                sts:ExternalId: !Ref AWS::AccountId
+      Policies:
+        - PolicyName: S3WritePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              Action:
+                - 's3:AbortMultipartUpload'
+                - 's3:GetBucketLocation'
+                - 's3:GetObject'
+                - 's3:ListBucket'
+                - 's3:ListBucketMultipartUploads'
+                - 's3:PutObject'
+              Effect: Allow
+              Resource:
+                - !GetAtt RawDataBucket.Arn
+                - !Join 
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - !Ref RawDataBucket
+                      - '*'
+                - !GetAtt ProcessedDataBucket.Arn
+                - !Join 
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - !Ref ProcessedDataBucket
+                      - '*'
+        - PolicyName: GluePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              Action:
+                - glue:GetTable
+                - glue:GetTableVersion
+                - glue:GetTableVersions
+              Effect: Allow
+              Resource:
+                - !Join
+                    - ''
+                    - - 'arn:aws:glue:'
+                      - !Ref AWS::Region
+                      - ':'
+                      - !Ref AWS::AccountId
+                      - ':table/'
+                      - !Ref TransactionGlueDatabase
+                      - '/'
+                      - !Ref TransactionGlueTable
+                - !Join
+                    - ''
+                    - - 'arn:aws:glue:'
+                      - !Ref AWS::Region
+                      - ':'
+                      - !Ref AWS::AccountId
+                      - ':database/'
+                      - !Ref TransactionGlueDatabase
+                - !Join
+                    - ''
+                    - - 'arn:aws:glue:'
+                      - !Ref AWS::Region
+                      - ':'
+                      - !Ref AWS::AccountId
+                      - ':catalog'
+
+  ## EventBridge Rule IAM Role for putting records into Firehose
+  PublishToFirehoseRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: TransactionFirehosePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - firehose:PutRecord
+                  - firehose:PutRecordBatch
+                Resource:
+                  - !GetAtt TransactionFirehose.Arn
+
+  ## Standard Workflow IAM Role
+  TransactionWorkflowRole:
+    Description: IAM Role for our Expired Subscription workflow
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - !Sub states.${AWS::Region}.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: WriteToDynamoDBPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamoDB:PutItem
+                Resource:
+                  - !GetAtt TransactionTable.Arn
+        - PolicyName: PublishEventsPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !Ref PublishEventsFunctionArn
+
+  ## EventBridge Rule IAM Role for invoking Express Workflow
+  InvokeTransactionWorkflowRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: TransactionWorkflowPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - states:StartExecution
+                Resource:
+                  - !Ref TransactionWorkflow

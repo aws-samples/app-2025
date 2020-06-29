@@ -1,0 +1,52 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  simulator
+
+  SAM Template for simulating human interaction in Episode 3.
+
+Parameters:
+  AccountQueueArn:
+    Description: ARN for the Account Approval SQS Queue
+    Type: String
+    AllowedPattern: "^arn:aws:sqs:[a-zA-Z0-9_.-]+:[0-9]{12}:[a-zA-Z0-9_.-]+"
+  
+  StateMachineArn:
+    Description: ARN for the AWS Step Functions workflow we call back to
+    Type: String
+    AllowedPattern: "^arn:aws:states:[a-zA-Z0-9_.-]+:[0-9]{12}:stateMachine:[a-zA-Z0-9_.-]+"
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+  SimulateApprovalFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: simulate-approval/
+      Handler: app.lambdaHandler
+      Runtime: nodejs12.x
+      Events:
+        AccountPoller:
+          Type: SQS
+          Properties:
+            Queue: !Ref AccountQueueArn
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - states:SendTaskSuccess
+              - states:SendTaskFailure
+              - states:SendTaskHeartbeat
+            Resource:
+              - !Ref StateMachineArn
+
+Outputs:
+  SimulateApprovalFunction:
+    Description: "Simulate Approval Lambda Function ARN"
+    Value: !GetAtt SimulateApprovalFunction.Arn

@@ -1,0 +1,949 @@
+{
+  "name": "App 2025: Simplifying your architecture with Amazon SNS and Amazon SQS",
+  "messages": [
+    {
+      "text": "all right here we are hey everybody welcome to this week's episode of app 20-25 thank you for joining if it's your first time here I hope that you'll find a lot to take away we are building the app of the future today and today's episode we're going to talk about Amazon SNS and Amazon Echo",
+      "created_at": "2020-05-07T18:00:24.612Z"
+    },
+    {
+      "text": "and how you can simplify your architecture and at the same time make it a lot more resilient using these two Services if you seen the previous episodes you know I get excited about the services that we talked about because I just genuinely like to build with them they give you so much power and flexibility to let you think about features and these two in particular are to my favorite these are old school serverless Services back 5 and 10 years before that was even a term they're incredibly robust they're sort of foundational in the theory of distributed systems so if you've been building any sort of distributed application the concept should be familiar and there's",
+      "created_at": "2020-05-07T18:01:10.601Z"
+    },
+    {
+      "text": "and we're going to get into some of that today",
+      "created_at": "2020-05-07T18:01:14.600Z"
+    },
+    {
+      "text": "we've got a nice big packed agenda today there's not going to be as much building because the pattern itself is pretty straightforward and reusable which I think is a really good thing but we will build I will give you the code for this pattern and we'll look at how all these pieces interact together",
+      "created_at": "2020-05-07T18:01:34.602Z"
+    },
+    {
+      "text": "so I'm going to talk a little bit about Amazon SNS or simple notification service in Amazon sqs simple queue service",
+      "created_at": "2020-05-07T18:01:41.602Z"
+    },
+    {
+      "text": "about their history and what they do",
+      "created_at": "2020-05-07T18:01:44.600Z"
+    },
+    {
+      "text": "I'm going to talk about how to use them together with Amazon event Bridge which",
+      "created_at": "2020-05-07T18:01:48.606Z"
+    },
+    {
+      "text": "remember is the backbone of our out 2025 app will go into some specifics on S\u0026S topics and subscribers or subscriber endpoints the different types that you have what you can do with him we'll talk about two different types of cues the SQL standard and fifo q's as well as in this pattern whether you should introduce your own to or not to kill or not to kill I say there that is a question and you'll understand more when we get there and then finally we'll build this buffered fan out pattern that I want to talk to you all about today",
+      "created_at": "2020-05-07T18:02:25.605Z"
+    },
+    {
+      "text": "I'm going to leave us on this screen for a little while instead of going into build because I think if we go into build",
+      "created_at": "2020-05-07T18:02:33.601Z"
+    },
+    {
+      "text": "we'll get a little confused on where we are again is always check the links command I just dropped in the chat is going to give you links to docks for both of these services in from the docks you can find pricing quote is all that good stuff you'll also note that first link is a webinar on Avent skews topics and streams that was just done by my colleague Julian would outstanding webinar up on YouTube if you want to get a little deeper into this from",
+      "created_at": "2020-05-07T18:03:03.604Z"
+    },
+    {
+      "text": "streams as well and so don't understand",
+      "created_at": "2020-05-07T18:03:06.612Z"
+    },
+    {
+      "text": "part of the concept of app 20-25 so I'd really encourage you to check that out and then I dropped a little link there on idempotency for you we're going to spend a little bit of time talking about that today should be a familiar concept if you've been building distributed systems but it's still something important to consider",
+      "created_at": "2020-05-07T18:03:24.601Z"
+    },
+    {
+      "text": "first I want to talk a little bit about SNS",
+      "created_at": "2020-05-07T18:03:29.616Z"
+    },
+    {
+      "text": "I like for your switch it up we're going to go down here and let's take a look at",
+      "created_at": "2020-05-07T18:03:36.602Z"
+    },
+    {
+      "text": "S\u0026S link",
+      "created_at": "2020-05-07T18:03:38.599Z"
+    },
+    {
+      "text": "blow this up for you a little here it's a fully managed publish subscribe messaging service so what that means is much like event birds that we've talked about already",
+      "created_at": "2020-05-07T18:03:50.611Z"
+    },
+    {
+      "text": "publish messages onto these topics SMS has this come concept of topics where you you just put your messages there and again you don't have to worry about who the subscriber is or know anything about it you can you can come up that way and we'll see that with our built but the most important thing is you just put those messages on there and then they fan out massively SNS is like I said it's an old school service it was announced over 10 years ago April 7th 2010 if I'm checking my notes here and it supports a variety of destination some that you might not think about when you're building distributed systems but that's and bring that bring some incredible capabilities so you can send these topics to http or https",
+      "created_at": "2020-05-07T18:04:39.606Z"
+    },
+    {
+      "text": "so this is good for like alerting on infrastructure event in s sqsq can be the Target and obviously that's how we're going to build today AWS Lambda functions can be the target direct Target",
+      "created_at": "2020-05-07T18:04:53.605Z"
+    },
+    {
+      "text": "you can send SMS messages",
+      "created_at": "2020-05-07T18:04:56.606Z"
+    },
+    {
+      "text": "two users of users and subscribers and this is a direct published message rather than a fan out and you can send push notifications to mobile devices and one of the keys on this if you see on the screen here talks about high-throughput you can send out millions of messages almost simultaneously right to a very low latency distribution of these messages if you if you look at some of the",
+      "created_at": "2020-05-07T18:05:28.605Z"
+    },
+    {
+      "text": "quotas here by default",
+      "created_at": "2020-05-07T18:05:32.605Z"
+    },
+    {
+      "text": "just a massive service right",
+      "created_at": "2020-05-07T18:05:34.614Z"
+    },
+    {
+      "text": "offers 10 million subscription per topic by default and 100000 topics per account and you can request a higher quota so this is for a much broader distribution of messages than we can get so if you need to notify individuals inside of your system or inside of your processes this is a good way to do it you need to notify sensors or like sensor data that kind of thing a multiple endpoints is a good way to do it as well",
+      "created_at": "2020-05-07T18:06:04.607Z"
+    },
+    {
+      "text": "sqs or simple to service is actually the first service that we announced at AWS we announced it on November 3rd 2004 which means it's over 15 years old it actually wound up being the second service released behind Amazon simple storage service or S3 but not my much it was released to the public in July 2006 but the services are also updated with new features SMS received message filtering so you can filter and take different actions based on the content of messages that come into the topics similarly sqs introduced first in first out or fifo cues in 2016 November 2016 and then just last year right after rain event and now it's a 1-minute metrics so that you get greater granularity and visibility into what's happening in your cues how many messages are in there how far backed up they are average time to clear all these other metrics that you see and again",
+      "created_at": "2020-05-07T18:07:11.606Z"
+    },
+    {
+      "text": "Workhorse of a service",
+      "created_at": "2020-05-07T18:07:14.607Z"
+    },
+    {
+      "text": "carry so much load when you look at quotas and restrictions here if my links work which that don't that's okay",
+      "created_at": "2020-05-07T18:07:25.609Z"
+    },
+    {
+      "text": "scroll y'all",
+      "created_at": "2020-05-07T18:07:29.609Z"
+    },
+    {
+      "text": "scroll right past it",
+      "created_at": "2020-05-07T18:07:32.607Z"
+    },
+    {
+      "text": "we look at it you can create any number of message queues a single cue can contain an unlimited number of messages you only have a hundred twenty thousand in Flight in any given time for standard Q so lots and lots of throughput lots and lots of volume hear the Lestat that I hope it's safe to release that we talked about Amazon uses sqsq internally and so as a single service we've seen uppers of 25 million messages per second coming on here that's during its peak load",
+      "created_at": "2020-05-07T18:08:17.608Z"
+    },
+    {
+      "text": "so again when you think about just the shear capacity there 25 million messages per second coming into a q means really well buffered from whatever's happening Downstream in your services",
+      "created_at": "2020-05-07T18:08:34.609Z"
+    },
+    {
+      "text": "and again just like SNS sqs is an old-school serverless service back before that was a term you don't have to say I expect this many messages per second or I need you know this mini instances at this size you just Define Accu and start throwing messages in it same thing with the topics to find a topic start spraying messages that it these things you don't have to think about that for you so they're sort of foundational serverless services for us here at AWS",
+      "created_at": "2020-05-07T18:09:09.612Z"
+    },
+    {
+      "text": "when we talk about these you'll hear some similarities right with Amazon event bridge but these are all distinct Services designed to work together very well so in or out 2025 architecture up until now what we had was",
+      "created_at": "2020-05-07T18:09:29.611Z"
+    },
+    {
+      "text": "a customer event bus running left to right",
+      "created_at": "2020-05-07T18:09:33.606Z"
+    },
+    {
+      "text": "business events on that bus and picking him up with workflows those were direct Integrations with AWS step functions workflows both Express workflows for quick running processes and standard workflows for using callbacks in the wait for tax token type jobs",
+      "created_at": "2020-05-07T18:09:52.617Z"
+    },
+    {
+      "text": "what SNS sqs enable you to do here is a couple things",
+      "created_at": "2020-05-07T18:09:58.619Z"
+    },
+    {
+      "text": "one remember that the rules that we Define",
+      "created_at": "2020-05-07T18:10:01.611Z"
+    },
+    {
+      "text": "Tony eventbus are limited to 5 Target",
+      "created_at": "2020-05-07T18:10:04.612Z"
+    },
+    {
+      "text": "banana production system you may have certain",
+      "created_at": "2020-05-07T18:10:09.608Z"
+    },
+    {
+      "text": "is there certain types of messages that you know we're going to be of interest to a large number of consumers and rather than repeating those rules and chewing up the number of rules are allowed on the bus or rather than trying to arbitrate who gets access to those rules you can just have the target for that rule being SNS topic and then the SNS topic can intern have these millions of subscribers like we talked about 10 million subscribers",
+      "created_at": "2020-05-07T18:10:38.608Z"
+    },
+    {
+      "text": "protopic so if you have an event that happens all the time that more than five consumers will want to know about you can use SNS to inform all of those consumers",
+      "created_at": "2020-05-07T18:10:50.619Z"
+    },
+    {
+      "text": "so that's that's how you would connect SNS into event Bridge once the messages in SNS by introducing an sqsq you bring a lot more benefits in on buffering",
+      "created_at": "2020-05-07T18:11:06.625Z"
+    },
+    {
+      "text": "invisibility",
+      "created_at": "2020-05-07T18:11:08.612Z"
+    },
+    {
+      "text": "and also on decoupling an abstraction right so if you publish directly from SNS to a Lambda function which is a valid use case that we see a lot there's a little more coupling there or you may be connecting to a legacy system that isn't ready to be migrated the fact is that system can still pull that sqsq and pull out the messages that it needs as it's available so again it's that best practice in a distributed system of decoupling and buffering so if your Downstream component whether that's a third-party API or Legacy system",
+      "created_at": "2020-05-07T18:11:48.614Z"
+    },
+    {
+      "text": "backs up and then runs these jobs when it hits a certain amount sqs can buffer all those messages for you there because again remember I'll just like we see here on the screen unlimited messages in the queue with 120,000 in flight so you can just pour messages in there as you need to until they're ready and so this is what we call this Bufford fan out pattern",
+      "created_at": "2020-05-07T18:12:12.642Z"
+    },
+    {
+      "text": "then going on to your boss quite regularly",
+      "created_at": "2020-05-07T18:12:15.612Z"
+    },
+    {
+      "text": "rule picks it up and send it to its Target which is an SNS topic",
+      "created_at": "2020-05-07T18:12:21.616Z"
+    },
+    {
+      "text": "SNS topic optionally filters it or just puts it into a Q and then from or number of queues or 10 million views it's up to you but the fact is between each interaction there are no direct subscriptions there no direct coupling so you've always got this buffer in place and that's again that's why I like to call that that buffered fan-out pattern and that's what we're going to be building today",
+      "created_at": "2020-05-07T18:12:48.616Z"
+    },
+    {
+      "text": "so we talk about a little bit about topics and what",
+      "created_at": "2020-05-07T18:12:54.613Z"
+    },
+    {
+      "text": "Rim points can be butt",
+      "created_at": "2020-05-07T18:12:56.612Z"
+    },
+    {
+      "text": "go into the SNS console in the AWS Management console",
+      "created_at": "2020-05-07T18:13:01.640Z"
+    },
+    {
+      "text": "we can see",
+      "created_at": "2020-05-07T18:13:04.615Z"
+    },
+    {
+      "text": "topics in subscriptions look like so here for example that will be using today we have this Legacy operation topic and you see that there's a number of configurable options here we're not going to get into all of these today but you can control directly who or what can put messages onto the topic or into the topic",
+      "created_at": "2020-05-07T18:13:25.613Z"
+    },
+    {
+      "text": "declare retry policies this is for if you're sending messages out to third-party services like webhooks slack notifications things like that come through you're inevitably failures are going to occur so here's where you can be fined that retry policy and make sure that it gets delivered",
+      "created_at": "2020-05-07T18:13:44.621Z"
+    },
+    {
+      "text": "logging we haven't configured login",
+      "created_at": "2020-05-07T18:13:48.615Z"
+    },
+    {
+      "text": "example today but you can log both success and failure",
+      "created_at": "2020-05-07T18:13:51.620Z"
+    },
+    {
+      "text": "deliveries",
+      "created_at": "2020-05-07T18:13:54.612Z"
+    },
+    {
+      "text": "all in development or testing so that you can see what's happening with your subscriptions",
+      "created_at": "2020-05-07T18:14:00.613Z"
+    },
+    {
+      "text": "encryption we haven't been able to denars but you can do both default encryption or customer provided customer master key encryption for messages at rest inside SQ us and intercourse tag based",
+      "created_at": "2020-05-07T18:14:15.616Z"
+    },
+    {
+      "text": "and then you",
+      "created_at": "2020-05-07T18:14:18.624Z"
+    },
+    {
+      "text": "create a list of subscriptions as well so in this case we have our endpoint here which is a an sqsq",
+      "created_at": "2020-05-07T18:14:27.612Z"
+    },
+    {
+      "text": "but if we do this manually",
+      "created_at": "2020-05-07T18:14:29.613Z"
+    },
+    {
+      "text": "we can select our topic in these are",
+      "created_at": "2020-05-07T18:14:33.617Z"
+    },
+    {
+      "text": "does endpoint types that we talked about before right so you got HTTP or https email or Jason an sqsq Lambda functions I haven't set this account up for others like SMS and push notification which is why they don't appear",
+      "created_at": "2020-05-07T18:14:50.616Z"
+    },
+    {
+      "text": "realtor policy where you can specify quite broadly and specifically meaning you have a lot of options so that you can filter and narrow down quite specifically which messages are going to send to the subscription",
+      "created_at": "2020-05-07T18:15:03.622Z"
+    },
+    {
+      "text": "and then redrive policies for dead letter queues so you can tell where to send undeliverable messages",
+      "created_at": "2020-05-07T18:15:12.620Z"
+    },
+    {
+      "text": "so",
+      "created_at": "2020-05-07T18:15:15.616Z"
+    },
+    {
+      "text": "you can see that the topic itself doesn't have to handle filtering",
+      "created_at": "2020-05-07T18:15:20.619Z"
+    },
+    {
+      "text": "the topic can be heroes every message related to customer accounts and the subscription itself can be okay I want all customer accounts that are delinquent more than 90 days or you know last activity was more than 30 days 60 days etcetera so that the subscriptions themselves give you another level of paring down to only the messages that you need inside your account",
+      "created_at": "2020-05-07T18:15:48.635Z"
+    },
+    {
+      "text": "then if I go over here let's talk about SQ rescues for a little bit because I mentioned there were two types",
+      "created_at": "2020-05-07T18:15:57.618Z"
+    },
+    {
+      "text": "these are just classic q's and distributed computing right put messages in text message",
+      "created_at": "2020-05-07T18:16:02.617Z"
+    },
+    {
+      "text": "in general the first messages into the Q are going to be the first messages out of the queue but that's not guaranteed unless you look at fifo cues and the difference with fifo q's and standard Q's is that fifo Q's have a little lower throughput but they have strict ordering and deduplication of messages so you you're looking at one time only processing of messages that come in there now don't get sloppy hear what this means is that the key was going to handle deduplication of incoming messages so that the message is only received and acted on once but if it's sending it off to something else to retry that interaction could always fail happen again not completing time and be retried but then be completed twice and this is why this concept of idempotency comes up all right even though you're only going to see that message come in once Downstream",
+      "created_at": "2020-05-07T18:17:06.622Z"
+    },
+    {
+      "text": "Jake says he's stopping at 2 years but he",
+      "created_at": "2020-05-07T18:17:08.621Z"
+    },
+    {
+      "text": "yeah you know we will make do with what we got right",
+      "created_at": "2020-05-07T18:17:14.626Z"
+    },
+    {
+      "text": "Tommy Wiseau as these",
+      "created_at": "2020-05-07T18:17:19.623Z"
+    },
+    {
+      "text": "can you make jokes I need to go back and look through my closed captioning and see",
+      "created_at": "2020-05-07T18:17:25.622Z"
+    },
+    {
+      "text": "these messages come in and are worked on just because they're deduplicated inbound doesn't mean that Downstream things can't happen to always be aware of that there's a link in here again I'll drop the links in the chat but I had if I can get over to the chat on my computer because who knows how computers work anymore there's a link in there if you see called Lambda idempotency and a blog post on how to ensure that your only processing messages",
+      "created_at": "2020-05-07T18:17:56.619Z"
+    },
+    {
+      "text": "did IBM write it out to dynamodb",
+      "created_at": "2020-05-07T18:17:59.622Z"
+    },
+    {
+      "text": "check for the existence of that ID before you begin processing so that you don't duplicate efforts",
+      "created_at": "2020-05-07T18:18:04.617Z"
+    },
+    {
+      "text": "and then we had this question about 2 Q or not to Q",
+      "created_at": "2020-05-07T18:18:14.625Z"
+    },
+    {
+      "text": "idempotence UK yeah thanks edj geek for dropping that definition in here it's the property of certain operations in mathematics and computer science were badly they can be applied multiple times without changing the result beyond the initial application so think about it's it's a good place to put an example in here think about if you got an ATM transaction right and you deposit $100 and there's a network error after it sends that deposit before it's recorded",
+      "created_at": "2020-05-07T18:18:47.619Z"
+    },
+    {
+      "text": "it made it but you haven't gotten a confirmation back and so it retries now you got to in-flight requests",
+      "created_at": "2020-05-07T18:18:55.620Z"
+    },
+    {
+      "text": "you don't think about idempotency you're basically just going to deposit $100 or units of local currency for wherever you are once and then catch the second message and process it again with idempotency checks you say okay this is transaction ID unique ID ABCD deposit $100 and then you get it again and it says I've already process this transaction so no matter how many times it receives that similar or that that same message it's not going to modify the outcome you can apply that message over and over but you only ever add $100 one time that's what idempotency is so thanks for dropping that definition in there but guy appreciate you",
+      "created_at": "2020-05-07T18:19:41.622Z"
+    },
+    {
+      "text": "so we were going to talk about the Q or not to Q",
+      "created_at": "2020-05-07T18:19:45.630Z"
+    },
+    {
+      "text": "when is buffered fan out pattern that we're going to build we have an event Bridge rule to an SNS topic to an sqsq to presumably in AWS Lambda function out the other side right",
+      "created_at": "2020-05-07T18:19:59.621Z"
+    },
+    {
+      "text": "but I also mentioned that we can just set up to have an SNS topic Pub",
+      "created_at": "2020-05-07T18:20:03.636Z"
+    },
+    {
+      "text": "direct publish directly to an AWS Lambda function",
+      "created_at": "2020-05-07T18:20:07.616Z"
+    },
+    {
+      "text": "that's the same architecture",
+      "created_at": "2020-05-07T18:20:11.633Z"
+    },
+    {
+      "text": "because SNS is going to handle the retries and buffering in Napoleon the messaging and all of this and it does that by using sqs under the hood",
+      "created_at": "2020-05-07T18:20:18.637Z"
+    },
+    {
+      "text": "the difference in these two is there's two key differences one if you that may be a good pattern for you you have to decide one differences you won't have visibility into that Q",
+      "created_at": "2020-05-07T18:20:33.620Z"
+    },
+    {
+      "text": "it's owned by AWS",
+      "created_at": "2020-05-07T18:20:36.631Z"
+    },
+    {
+      "text": "so you won't know how many messages are in there you won't see it in your account you won't be able to flush it Purge it change the redrive on it after definition",
+      "created_at": "2020-05-07T18:20:47.625Z"
+    },
+    {
+      "text": "the other is it's that tighter coupling with Lambda",
+      "created_at": "2020-05-07T18:20:52.619Z"
+    },
+    {
+      "text": "when in actuality",
+      "created_at": "2020-05-07T18:20:55.624Z"
+    },
+    {
+      "text": "could create a Q and have Lambda functions pull messages off and your legacy compute pull messages off at the same time and compare the results to be sure that you are seeing what you expect to see where you could move back and forth so again it goes back to that question of decoupling",
+      "created_at": "2020-05-07T18:21:15.627Z"
+    },
+    {
+      "text": "benefits of retries Andre drives I'm sorry I don't know what's going on with my throat today benefits of the retries Andre drives are already there even if you go directly from your SNS topic to your Lambda function",
+      "created_at": "2020-05-07T18:21:29.618Z"
+    },
+    {
+      "text": "all right",
+      "created_at": "2020-05-07T18:21:32.624Z"
+    },
+    {
+      "text": "one other thing that I want to talk about here service Integrations",
+      "created_at": "2020-05-07T18:21:37.631Z"
+    },
+    {
+      "text": "play an episode on service Integrations from the",
+      "created_at": "2020-05-07T18:21:40.627Z"
+    },
+    {
+      "text": "step function series couple weeks ago",
+      "created_at": "2020-05-07T18:21:44.624Z"
+    },
+    {
+      "text": "these are good examples where all of these can sort of past messages back and forth to one another as service Integrations without executing Lambda functions so you know your your SNS topic can publish to your sqsq your event Bridge rule can Target an sqsq or an SNS topic Etc it's just a nice declarative way to define that connection and then you remove the problematic aspects of undifferentiated imperative code right you don't have libraries and checks like this you don't have the same deployment issues because you just given that declarative think so all of the typical benefits from service integration stand",
+      "created_at": "2020-05-07T18:22:29.626Z"
+    },
+    {
+      "text": "so let's let's jump into Visual Studio code here",
+      "created_at": "2020-05-07T18:22:35.624Z"
+    },
+    {
+      "text": "we'll do a quick Refresh on what we have",
+      "created_at": "2020-05-07T18:22:40.627Z"
+    },
+    {
+      "text": "we have this infrastructure here",
+      "created_at": "2020-05-07T18:22:43.631Z"
+    },
+    {
+      "text": "which is a Sam template",
+      "created_at": "2020-05-07T18:22:47.629Z"
+    },
+    {
+      "text": "custom event boss",
+      "created_at": "2020-05-07T18:22:49.629Z"
+    },
+    {
+      "text": "and function that we used in other apps but for this case really all we care about is the event bus topic today is going to be this operation received or operation performed",
+      "created_at": "2020-05-07T18:23:05.632Z"
+    },
+    {
+      "text": "we talked about our any company SAS application it's got core functionality",
+      "created_at": "2020-05-07T18:23:10.626Z"
+    },
+    {
+      "text": "that core functionality we can assume here is performed by a legacy system",
+      "created_at": "2020-05-07T18:23:16.647Z"
+    },
+    {
+      "text": "we're migrating that into the cloud by allowing that Legacy system to put events on to our custom event bus so from there once it's done its job we handle those with work clothes",
+      "created_at": "2020-05-07T18:23:30.633Z"
+    },
+    {
+      "text": "so if I go back to the",
+      "created_at": "2020-05-07T18:23:34.626Z"
+    },
+    {
+      "text": "so here are the AWS Management console really all we're concerned about is that we",
+      "created_at": "2020-05-07T18:23:39.630Z"
+    },
+    {
+      "text": "custom event bus and it's named in a company",
+      "created_at": "2020-05-07T18:23:43.623Z"
+    },
+    {
+      "text": "I took today will be working in operations",
+      "created_at": "2020-05-07T18:23:51.631Z"
+    },
+    {
+      "text": "and this is why I said we were concerned with that named eventbus because we have to know where to listen or where are Rula tattoos",
+      "created_at": "2020-05-07T18:24:03.644Z"
+    },
+    {
+      "text": "attached to the any company of Embassy and again I apologise",
+      "created_at": "2020-05-07T18:24:06.622Z"
+    },
+    {
+      "text": "to take a break here and look at the way the texture DJ geek a great way when using dynamodb is to use conditional Checks In dynamodb",
+      "created_at": "2020-05-07T18:24:19.626Z"
+    },
+    {
+      "text": "that's right",
+      "created_at": "2020-05-07T18:24:21.669Z"
+    },
+    {
+      "text": "I'm pretty sure that he has done that himself",
+      "created_at": "2020-05-07T18:24:24.633Z"
+    },
+    {
+      "text": "alright keep driving on here",
+      "created_at": "2020-05-07T18:24:28.630Z"
+    },
+    {
+      "text": "so this defaults to the valley that we've already given it that's great",
+      "created_at": "2020-05-07T18:24:33.636Z"
+    },
+    {
+      "text": "we have our Legacy operation Rule and again we talked about this Bufford fan out pattern is a rule to a topic to a q",
+      "created_at": "2020-05-07T18:24:43.627Z"
+    },
+    {
+      "text": "right and so you see in what is that hit line 40",
+      "created_at": "2020-05-07T18:24:50.623Z"
+    },
+    {
+      "text": "find all of this and we had to have a parameter here but in 40 lines we've been able to do",
+      "created_at": "2020-05-07T18:24:54.623Z"
+    },
+    {
+      "text": "there's one more thing we need to put here which is the policy to allow us to publish the messages but that's it this is a straightforward powerful but simple pattern that you can pick this up and use it as a nested stock to create this pattern for any number of",
+      "created_at": "2020-05-07T18:25:16.630Z"
+    },
+    {
+      "text": "in your application",
+      "created_at": "2020-05-07T18:25:18.626Z"
+    },
+    {
+      "text": "so again this rule is just copied over from what we've built previously in the customers",
+      "created_at": "2020-05-07T18:25:26.840Z"
+    },
+    {
+      "text": "application",
+      "created_at": "2020-05-07T18:25:28.631Z"
+    },
+    {
+      "text": "it's going to listen on our customer event bus",
+      "created_at": "2020-05-07T18:25:33.630Z"
+    },
+    {
+      "text": "operation performed events",
+      "created_at": "2020-05-07T18:25:35.631Z"
+    },
+    {
+      "text": "come from our source same as the other we've defined combat any company",
+      "created_at": "2020-05-07T18:25:40.636Z"
+    },
+    {
+      "text": "and then the detail type is Operation performed",
+      "created_at": "2020-05-07T18:25:44.626Z"
+    },
+    {
+      "text": "a difference to note here",
+      "created_at": "2020-05-07T18:25:46.629Z"
+    },
+    {
+      "text": "when you create",
+      "created_at": "2020-05-07T18:25:48.629Z"
+    },
+    {
+      "text": "a Target that has an SNS topic",
+      "created_at": "2020-05-07T18:25:52.638Z"
+    },
+    {
+      "text": "you don't need to create a roll for event bridge to assume to invoke that topic that's all handled behind the scenes for you mrs. in contrast to when we talked about that customer service",
+      "created_at": "2020-05-07T18:26:09.630Z"
+    },
+    {
+      "text": "where are we are customer service we created a rule which was invoking step functions workflow",
+      "created_at": "2020-05-07T18:26:17.630Z"
+    },
+    {
+      "text": "for that step functions workflow we had to define a role that enabled event bridge to invoke that Target this is all wired up properly for us by then bridge for SNS topic so that's great all we have to do here is provide the topic a RN and then this ID is human-readable name for it all right so this block of code takes our ingested event puts it into the SNS topic",
+      "created_at": "2020-05-07T18:26:51.631Z"
+    },
+    {
+      "text": "this block of code is all it takes to define the SNS topic",
+      "created_at": "2020-05-07T18:26:55.627Z"
+    },
+    {
+      "text": "we just need to give it a name which we've seen in the console here",
+      "created_at": "2020-05-07T18:27:01.631Z"
+    },
+    {
+      "text": "Carmi Topix",
+      "created_at": "2020-05-07T18:27:06.631Z"
+    },
+    {
+      "text": "Legacy operation topic",
+      "created_at": "2020-05-07T18:27:08.635Z"
+    },
+    {
+      "text": "and then we Define a subscription what's going to subscribe to it",
+      "created_at": "2020-05-07T18:27:13.645Z"
+    },
+    {
+      "text": "give it a protocol and an endpoint",
+      "created_at": "2020-05-07T18:27:16.634Z"
+    },
+    {
+      "text": "are protocols s Key West",
+      "created_at": "2020-05-07T18:27:18.631Z"
+    },
+    {
+      "text": "is this a dynamic reference",
+      "created_at": "2020-05-07T18:27:21.623Z"
+    },
+    {
+      "text": "operations Q",
+      "created_at": "2020-05-07T18:27:23.646Z"
+    },
+    {
+      "text": "if that wasn't easy enough the cutest even easier right this is the simple default now there's a lot more that we can add on here and in fact if we go to the sqf box real quick",
+      "created_at": "2020-05-07T18:27:38.626Z"
+    },
+    {
+      "text": "stocks",
+      "created_at": "2020-05-07T18:27:42.633Z"
+    },
+    {
+      "text": "I mean let me do this differently AWS sqs queue",
+      "created_at": "2020-05-07T18:27:49.639Z"
+    },
+    {
+      "text": "we have these other properties",
+      "created_at": "2020-05-07T18:27:54.633Z"
+    },
+    {
+      "text": "what are not required",
+      "created_at": "2020-05-07T18:27:55.627Z"
+    },
+    {
+      "text": "can do content-based deduplication for fifo Q's we Define a Boolean we want to fifo queue we can have a delay in seconds if we want messages to sit in the queue for some reason again KMS Keys maximum message size has retention. Time to wait to receive messages full Read Drive policies on what to do with these with errors so there's a lot of stuff that we can add into are too and I'd encourage you to look through those docs and get a better understanding of what you're used case requires but to just get out the door all we have to do is get a name and once you've given it a name",
+      "created_at": "2020-05-07T18:28:42.628Z"
+    },
+    {
+      "text": "off we go",
+      "created_at": "2020-05-07T18:28:44.632Z"
+    },
+    {
+      "text": "then the final step here",
+      "created_at": "2020-05-07T18:28:48.640Z"
+    },
+    {
+      "text": "do we need a queue policy",
+      "created_at": "2020-05-07T18:28:51.634Z"
+    },
+    {
+      "text": "for security reasons",
+      "created_at": "2020-05-07T18:28:54.631Z"
+    },
+    {
+      "text": "queues have HTTP in points that are used to put messages in",
+      "created_at": "2020-05-07T18:29:03.637Z"
+    },
+    {
+      "text": "datcu nothing is authorized to put a message in it",
+      "created_at": "2020-05-07T18:29:07.631Z"
+    },
+    {
+      "text": "that's great that's what we want right but that means that we need to come back out then and at some point it's not useful until something can put a message into it so we create this sqsq policy",
+      "created_at": "2020-05-07T18:29:22.632Z"
+    },
+    {
+      "text": "pretty straightforward it's got two properties",
+      "created_at": "2020-05-07T18:29:25.635Z"
+    },
+    {
+      "text": "it has a list of cues to",
+      "created_at": "2020-05-07T18:29:28.627Z"
+    },
+    {
+      "text": "policy to so you can reuse it",
+      "created_at": "2020-05-07T18:29:31.631Z"
+    },
+    {
+      "text": "has the policy document and it's a pretty standard I am statement",
+      "created_at": "2020-05-07T18:29:37.631Z"
+    },
+    {
+      "text": "we allow",
+      "created_at": "2020-05-07T18:29:39.635Z"
+    },
+    {
+      "text": "the send message action",
+      "created_at": "2020-05-07T18:29:42.628Z"
+    },
+    {
+      "text": "and this like this hurts my heart but don't worry about this because their condition takes care of us here",
+      "created_at": "2020-05-07T18:29:50.632Z"
+    },
+    {
+      "text": "how are send message action from any AWS account",
+      "created_at": "2020-05-07T18:29:55.634Z"
+    },
+    {
+      "text": "long as this condition is met",
+      "created_at": "2020-05-07T18:29:58.631Z"
+    },
+    {
+      "text": "it again you need to specify the Q name here under",
+      "created_at": "2020-05-07T18:30:04.655Z"
+    },
+    {
+      "text": "and you need to specify the qarn here",
+      "created_at": "2020-05-07T18:30:10.639Z"
+    },
+    {
+      "text": "resource so pay attention to this whenever you're defining your policies if you're not able to get messages into your to this may be why a good way to figure out what's happening there is to enable logging for your SNS topic and send failure logs to cloudwatch logs group so that you can see what happened",
+      "created_at": "2020-05-07T18:30:30.639Z"
+    },
+    {
+      "text": "and it finally this condition is what makes everything okay",
+      "created_at": "2020-05-07T18:30:34.636Z"
+    },
+    {
+      "text": "because the a RN that's the source are in of the message must equal are SNS topic",
+      "created_at": "2020-05-07T18:30:43.634Z"
+    },
+    {
+      "text": "so what this means is that topic name in another account",
+      "created_at": "2020-05-07T18:30:49.632Z"
+    },
+    {
+      "text": "not publishing to this queue",
+      "created_at": "2020-05-07T18:30:51.647Z"
+    },
+    {
+      "text": "this account with another topic name",
+      "created_at": "2020-05-07T18:30:55.634Z"
+    },
+    {
+      "text": "publishing to the SKU",
+      "created_at": "2020-05-07T18:30:58.629Z"
+    },
+    {
+      "text": "Hangouts ec2 ECS whatever cannot publish into this cute",
+      "created_at": "2020-05-07T18:31:03.638Z"
+    },
+    {
+      "text": "you got this properly restricted so that the only thing that can do anything to this queue is are SNS topic to find in the same template and the only thing you can do is send a message to that Q not like sending a message but actually",
+      "created_at": "2020-05-07T18:31:23.636Z"
+    },
+    {
+      "text": "core of what we want",
+      "created_at": "2020-05-07T18:31:27.628Z"
+    },
+    {
+      "text": "to restrict access to our to properly",
+      "created_at": "2020-05-07T18:31:31.635Z"
+    },
+    {
+      "text": "and then down here we just giving ourselves a couple outputs so that when we run this and Sam",
+      "created_at": "2020-05-07T18:31:41.635Z"
+    },
+    {
+      "text": "we get what we want not actually deployed this already",
+      "created_at": "2020-05-07T18:31:45.638Z"
+    },
+    {
+      "text": "and we seen all of it in the infrastructure so I just want to take a quick look at the Q",
+      "created_at": "2020-05-07T18:31:51.633Z"
+    },
+    {
+      "text": "we have the permissions that we Define down here where everybody can send messages as long as the source are in happens to be exactly equal to this account in this region from this topic right",
+      "created_at": "2020-05-07T18:32:08.635Z"
+    },
+    {
+      "text": "we haven't defined redrive policies or encryption but if we did this is where you'd see them come up",
+      "created_at": "2020-05-07T18:32:15.636Z"
+    },
+    {
+      "text": "and then we can take a look inside this Q",
+      "created_at": "2020-05-07T18:32:19.649Z"
+    },
+    {
+      "text": "again is the advantage of inserting a q",
+      "created_at": "2020-05-07T18:32:23.637Z"
+    },
+    {
+      "text": "between an SNS topic and whatever compute you use is you can watch that volume you get metrics on the average age or the number of messages in their lots of useful information especially in depth",
+      "created_at": "2020-05-07T18:32:36.640Z"
+    },
+    {
+      "text": "but also in production it's always good to be decoupled",
+      "created_at": "2020-05-07T18:32:40.638Z"
+    },
+    {
+      "text": "so you see we don't have any messages in this queue yet",
+      "created_at": "2020-05-07T18:32:43.633Z"
+    },
+    {
+      "text": "what we can do",
+      "created_at": "2020-05-07T18:32:47.643Z"
+    },
+    {
+      "text": "it's put some messages let me go back here",
+      "created_at": "2020-05-07T18:32:51.636Z"
+    },
+    {
+      "text": "the created file",
+      "created_at": "2020-05-07T18:32:54.636Z"
+    },
+    {
+      "text": "as always in our infrastructure folder",
+      "created_at": "2020-05-07T18:32:59.632Z"
+    },
+    {
+      "text": "Apple events that match and in this case I've given at 5",
+      "created_at": "2020-05-07T18:33:03.637Z"
+    },
+    {
+      "text": "performed events",
+      "created_at": "2020-05-07T18:33:05.636Z"
+    },
+    {
+      "text": "times so these all match our source and they all match her detail type which is how we defined our event Bridge rule",
+      "created_at": "2020-05-07T18:33:13.635Z"
+    },
+    {
+      "text": "so if we go back here we can run events put events episode 4 and will get",
+      "created_at": "2020-05-07T18:33:24.639Z"
+    },
+    {
+      "text": "0 failures 5 event IDs",
+      "created_at": "2020-05-07T18:33:27.636Z"
+    },
+    {
+      "text": "great array to what we wanted to see",
+      "created_at": "2020-05-07T18:33:30.645Z"
+    },
+    {
+      "text": "and now in a bit of magic",
+      "created_at": "2020-05-07T18:33:34.649Z"
+    },
+    {
+      "text": "just refresh here and we have 5 messages available now",
+      "created_at": "2020-05-07T18:33:38.637Z"
+    },
+    {
+      "text": "why mainly because we haven't attached any consumers",
+      "created_at": "2020-05-07T18:33:44.631Z"
+    },
+    {
+      "text": "so just as we built that simulator before we can build a simulator here to pick up the messages from the Q mark them is processed and removed them but I just wanted to make the point that",
+      "created_at": "2020-05-07T18:33:57.639Z"
+    },
+    {
+      "text": "I just wanted to make the point that these messages are going to sit here until some sort of compute comes along to get them or until they age out according to the policies that we've set so what happened was we put those five messages on to this event bus",
+      "created_at": "2020-05-07T18:34:15.638Z"
+    },
+    {
+      "text": "where this rule",
+      "created_at": "2020-05-07T18:34:19.630Z"
+    },
+    {
+      "text": "Matt Stahl five",
+      "created_at": "2020-05-07T18:34:24.643Z"
+    },
+    {
+      "text": "pick them up and publish them to the SNS topic I've also got I'm going to cloudwatch logs so that we can help ourselves out",
+      "created_at": "2020-05-07T18:34:31.644Z"
+    },
+    {
+      "text": "oops",
+      "created_at": "2020-05-07T18:34:34.640Z"
+    },
+    {
+      "text": "we can also see metrics for this rule here",
+      "created_at": "2020-05-07T18:34:39.638Z"
+    },
+    {
+      "text": "listen to this topic",
+      "created_at": "2020-05-07T18:34:42.635Z"
+    },
+    {
+      "text": "which has a subscription of that S\u0026S Q",
+      "created_at": "2020-05-07T18:34:45.646Z"
+    },
+    {
+      "text": "I need to put them in the queue",
+      "created_at": "2020-05-07T18:34:48.638Z"
+    },
+    {
+      "text": "in this way events that come on to the event bus at a high rate can be sent out to a high number of consumers wear their buffered until they can be held against the buffered fan out pattern so just a couple things to show you here",
+      "created_at": "2020-05-07T18:35:07.635Z"
+    },
+    {
+      "text": "you've got this data point here where we had this triggered rule in the same invitations thankfully",
+      "created_at": "2020-05-07T18:35:15.635Z"
+    },
+    {
+      "text": "oh that's old failed invocation I'm in the wrong I'm in the wrong block of time here I'll have to wait for those to come up on this crap",
+      "created_at": "2020-05-07T18:35:25.638Z"
+    },
+    {
+      "text": "but so again it's gone through we put these events onto the bus it's gone into the topic it's gone from the topic into the Q and now whatever compute wherever can pick those messages up process them and remove them from the queue when it's done",
+      "created_at": "2020-05-07T18:35:43.637Z"
+    },
+    {
+      "text": "so",
+      "created_at": "2020-05-07T18:35:45.641Z"
+    },
+    {
+      "text": "again if I go back and interview here",
+      "created_at": "2020-05-07T18:35:52.645Z"
+    },
+    {
+      "text": "we talked about Amazon SNS",
+      "created_at": "2020-05-07T18:35:55.641Z"
+    },
+    {
+      "text": "history as a over 10 year old service now",
+      "created_at": "2020-05-07T18:35:59.643Z"
+    },
+    {
+      "text": "we talked about Amazon sqs and its history as the first service we announced 15 years ago",
+      "created_at": "2020-05-07T18:36:05.645Z"
+    },
+    {
+      "text": "we talked about the different types of snsn points that we have HTTP https email push notifications SMS sqs Lambda function",
+      "created_at": "2020-05-07T18:36:17.643Z"
+    },
+    {
+      "text": "sqs standard cues where topics just come in aren't the duplicated and are sent out we talked about sqs fifo cues that we all got to sneeze hold on",
+      "created_at": "2020-05-07T18:36:30.643Z"
+    },
+    {
+      "text": "I didn't get the mute button I apologize I tried I pushed it",
+      "created_at": "2020-05-07T18:36:37.640Z"
+    },
+    {
+      "text": "we'll talk about sqs fifo Q's where messages Rd duplicated and ordered we also talked about thank u e d g we also talked about the need to manage our idempotency even when we're using fifo cues and then we showed how these can integrate with one another and with Amazon event bridge to create this buffered fan out pattern so",
+      "created_at": "2020-05-07T18:37:02.648Z"
+    },
+    {
+      "text": "a little lighter on the code for this episode than normal but I wanted to",
+      "created_at": "2020-05-07T18:37:09.641Z"
+    },
+    {
+      "text": "more about the history of the services because of how long they've been around",
+      "created_at": "2020-05-07T18:37:14.633Z"
+    },
+    {
+      "text": "I had to look that one up it's Gesundheit in Dutch if we have any Dutch beers that can back me up on this",
+      "created_at": "2020-05-07T18:37:21.657Z"
+    },
+    {
+      "text": "again I lost it anyway we we we talked a little more about the history of these Services because of how many features there are but also because of how stable these are right like we've got with the policy 70 lines of code in this file for a pattern that's applicable for anywhere from one consumer to 10 million consumers from on-premise workloads to Lambda functions like it's just pretty easy when you have this code to hook all that stuff up so what I would hope is that you would take this code and take your work clothes and go away and think where is my system too tightly coupled or where do I think that I can't move to the cloud and then start to challenge your assumptions their start to break that apart with this pattern because it's a really good way to begin to make your applications more resilient and to make them more distributed",
+      "created_at": "2020-05-07T18:38:22.641Z"
+    },
+    {
+      "text": "I'm going to wrap a little early this week go and take care of my throat see what",
+      "created_at": "2020-05-07T18:38:26.933Z"
+    },
+    {
+      "text": "I appreciate your patience with me",
+      "created_at": "2020-05-07T18:38:28.649Z"
+    },
+    {
+      "text": "stream I hope you learn something I hope you got something you can take away I hope my voice is better for next week but thank you all for joining us I'll be on the 8th of us Channel next Tuesday same time for AWS step functions and then I'll be back here next week where we're going to talk about service Integrations for storing data so again we're going to move your data between services and get it into persistent storage without you having to use a Lambda function to do it",
+      "created_at": "2020-05-07T18:38:58.652Z"
+    },
+    {
+      "text": "thank you all for joining hope you have a good rest of your weekend",
+      "created_at": "2020-05-07T18:39:02.642Z"
+    },
+    {
+      "text": "and I'll see you next week",
+      "created_at": "2020-05-07T18:39:04.640Z"
+    }
+  ]
+}

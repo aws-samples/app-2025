@@ -1,0 +1,1469 @@
+{
+  "name": "App 2025: Amazon EventBridge as the backbone of your app",
+  "messages": [
+    {
+      "text": "all right everybody gets robbed thanks for joining not gets robbed I've got a closed captioning overlay here hopefully I think that they'll get it right my name is Rob this is the app 20-25 session it's it's a it's a project that I'm really excited about if you've caught me at meetups or conference is over the past 6 months when we were still going to those typically afterwards I would wind up having conversations with people about this sort of new application structure and it's based around event Bridge Amazon event Bridge as the key as a backbone and it's an event-driven architecture with AWS",
+      "created_at": "2020-04-09T18:00:48.556Z"
+    },
+    {
+      "text": "if that listening to the event what's really cool about this is its",
+      "created_at": "2020-04-09T18:00:53.555Z"
+    },
+    {
+      "text": "language agnostic except for your business logic so all the business logic that you've already written can be pulled into AWS Lambda functions but it just takes a lot out of what you have to manage and deal with",
+      "created_at": "2020-04-09T18:01:09.500Z"
+    },
+    {
+      "text": "we're going to be going over today we're going to talk about sort of the theory of it we're going to do a little bit of diagramming live prep some of that but I'll just do it as we go oh",
+      "created_at": "2020-04-09T18:01:20.471Z"
+    },
+    {
+      "text": "that's awful",
+      "created_at": "2020-04-09T18:01:23.508Z"
+    },
+    {
+      "text": "can hear me that whole time I'd like to thank y'all for letting me know that you could not hear me",
+      "created_at": "2020-04-09T18:01:28.569Z"
+    },
+    {
+      "text": "all time now",
+      "created_at": "2020-04-09T18:01:32.488Z"
+    },
+    {
+      "text": "what I was talking about was the beginning of what's on the slide",
+      "created_at": "2020-04-09T18:01:34.536Z"
+    },
+    {
+      "text": "we're going to go over this architecture today at spoken was improper and thanks for letting me know",
+      "created_at": "2020-04-09T18:01:44.477Z"
+    },
+    {
+      "text": "I need to check my stream deck setup that's what I get for relying on technology right we're going to go over this architecture as a concept and then we're going to do a little bit of diagramming on the fly with a specific example that we're going to build out and then over the course of the series we're going to build that application up with almost everything except the like Core Business logic whatever your core competitive Advantage would be so I'm pretty excited about it and let's take a quick look through our agenda here so there's the third bullet",
+      "created_at": "2020-04-09T18:02:23.491Z"
+    },
+    {
+      "text": "can you give me the stock today to meet up but apparently he did Ben ellerby is a he's an AWS serverless hero and he's written an excellent blog post that you can get here in the channel by entering the links command or I'm going to drop it in here for you as well as storming and that is the basis for discovering our events",
+      "created_at": "2020-04-09T18:02:45.533Z"
+    },
+    {
+      "text": "finding our events and",
+      "created_at": "2020-04-09T18:02:49.635Z"
+    },
+    {
+      "text": "figuring out what we need to build here",
+      "created_at": "2020-04-09T18:02:52.773Z"
+    },
+    {
+      "text": "I just want to make sure that he gets recognition for that work there's a link to his blog post in there so we're working off of nlrb's technique super applicable exercise that your team can do in under a week to begin building an event-driven application and then the last thing we'll do is create an event Bridge custom eventbus if you happen to be joining us from the AWS Channel about an hour ago Eric Johnson gave her a great half hour session on salmon event Bridge",
+      "created_at": "2020-04-09T18:03:29.473Z"
+    },
+    {
+      "text": "Sam is a cheat sheet",
+      "created_at": "2020-04-09T18:03:30.515Z"
+    },
+    {
+      "text": "show you how I do that it looks like we're having some network issues as well let me know if you start seeing network issues on your side and I'll I'll see what I can do but it looks like I'm back up",
+      "created_at": "2020-04-09T18:03:44.506Z"
+    },
+    {
+      "text": "but definitely go back to the AWS Channel and check out Eric Johnson sessions with Sam video from today",
+      "created_at": "2020-04-09T18:03:51.815Z"
+    },
+    {
+      "text": "Etsy I'm still buffering",
+      "created_at": "2020-04-09T18:03:57.506Z"
+    },
+    {
+      "text": "well I guess everybody's home we're actually in the middle of a windstorm here so hopefully my internet will pick up maybe sis Downstream I'm going to I'm going to keep driving on let me know in the chat if you cannot hear me otherwise I'm just going to pretend like everything is okay",
+      "created_at": "2020-04-09T18:04:18.500Z"
+    },
+    {
+      "text": "just ask me your questions as we go okay that's the edge",
+      "created_at": "2020-04-09T18:04:21.534Z"
+    },
+    {
+      "text": "networking issues",
+      "created_at": "2020-04-09T18:04:25.493Z"
+    },
+    {
+      "text": "let's see here",
+      "created_at": "2020-04-09T18:04:27.588Z"
+    },
+    {
+      "text": "turn turn turn",
+      "created_at": "2020-04-09T18:04:30.782Z"
+    },
+    {
+      "text": "are y'all bear with me there's always it's always some kind of fun right so let's see if we can change this",
+      "created_at": "2020-04-09T18:04:42.546Z"
+    },
+    {
+      "text": "low latency settings here",
+      "created_at": "2020-04-09T18:04:45.508Z"
+    },
+    {
+      "text": "I appreciate your patience y'all it's you know whatever you try to do it's going to get a you're going to get hit eventually yeah I'm seeing like massive bitrate drop so it's a flea my connection here I'm sorry all I'm on gigabit fiber but",
+      "created_at": "2020-04-09T18:05:02.496Z"
+    },
+    {
+      "text": "middle of a storm everybody's watching Netflix",
+      "created_at": "2020-04-09T18:05:05.526Z"
+    },
+    {
+      "text": "what you going to do",
+      "created_at": "2020-04-09T18:05:07.561Z"
+    },
+    {
+      "text": "latency mode loaded latency let's return this to normal latency so I'll be a little bit behind y'all",
+      "created_at": "2020-04-09T18:05:16.499Z"
+    },
+    {
+      "text": "you may see another jump as a setting changes",
+      "created_at": "2020-04-09T18:05:20.476Z"
+    },
+    {
+      "text": "but again I'm here in this is live obviously I wouldn't put this on the air if I'd recorded it in this it happen so just asking you questions as you go",
+      "created_at": "2020-04-09T18:05:30.553Z"
+    },
+    {
+      "text": "MR2 shout out to Ben allergy for this methodology it'll be a service hero and let's",
+      "created_at": "2020-04-09T18:05:37.531Z"
+    },
+    {
+      "text": "all right well oh look I got some crazy screen of death stuff going on over here",
+      "created_at": "2020-04-09T18:05:46.527Z"
+    },
+    {
+      "text": "manual",
+      "created_at": "2020-04-09T18:05:50.476Z"
+    },
+    {
+      "text": "this phone you see my OBS 1/2 now let's do this",
+      "created_at": "2020-04-09T18:05:54.475Z"
+    },
+    {
+      "text": "better huh there it's fixed",
+      "created_at": "2020-04-09T18:05:57.589Z"
+    },
+    {
+      "text": "here it's fixed says",
+      "created_at": "2020-04-09T18:06:00.495Z"
+    },
+    {
+      "text": "DJ geek whatever you do don't call him at Jay Peak he doesn't like them thanks Al",
+      "created_at": "2020-04-09T18:06:07.519Z"
+    },
+    {
+      "text": "so",
+      "created_at": "2020-04-09T18:06:09.490Z"
+    },
+    {
+      "text": "all right I haven't seen my stream catch up to it but I've seen",
+      "created_at": "2020-04-09T18:06:13.554Z"
+    },
+    {
+      "text": "catch up to it",
+      "created_at": "2020-04-09T18:06:15.527Z"
+    },
+    {
+      "text": "fun times y'all fun times",
+      "created_at": "2020-04-09T18:06:17.476Z"
+    },
+    {
+      "text": "all right",
+      "created_at": "2020-04-09T18:06:20.527Z"
+    },
+    {
+      "text": "so when we talked about this architectural pattern I went over this once but I was on mute",
+      "created_at": "2020-04-09T18:06:26.533Z"
+    },
+    {
+      "text": "so we can go over again if you see me or caught me in a meet-up or a conference recently we probably talked about this architecture of the future which is what I consider app 20-25 it's one of the ways that once you start building with it it becomes so self-evident that this is how apps are going to be built but you know what it takes awhile to adopt things like this",
+      "created_at": "2020-04-09T18:06:51.477Z"
+    },
+    {
+      "text": "who is service oriented architecture",
+      "created_at": "2020-04-09T18:06:53.543Z"
+    },
+    {
+      "text": "one thing that's different is",
+      "created_at": "2020-04-09T18:06:56.582Z"
+    },
+    {
+      "text": "these services are serverless now so you don't have to think about installing license in running managing all of these things you just think about the interactions between them and again the core competitive business logic of your company is the only thing that you have to focus on which frees you up to build customer value which is again one of those key tenets of serverless",
+      "created_at": "2020-04-09T18:07:19.589Z"
+    },
+    {
+      "text": "look here",
+      "created_at": "2020-04-09T18:07:23.543Z"
+    },
+    {
+      "text": "little basic diagram here that we're going to work on together",
+      "created_at": "2020-04-09T18:07:26.544Z"
+    },
+    {
+      "text": "this is an event-driven architecture",
+      "created_at": "2020-04-09T18:07:30.499Z"
+    },
+    {
+      "text": "and again you've got an Amazon event Bridge custom event bus for your application and then time is moving left to right and as you see you put an event on to the bus and rules filter those events to different listeners",
+      "created_at": "2020-04-09T18:07:44.543Z"
+    },
+    {
+      "text": "and",
+      "created_at": "2020-04-09T18:07:47.477Z"
+    },
+    {
+      "text": "rules will send it over to a workflow which processes those and some amount of time and then eventually they'll put their own output of its back onto the bus",
+      "created_at": "2020-04-09T18:07:55.523Z"
+    },
+    {
+      "text": "and this just sort of repeats right it's the the whole concept of observability of events rather than command driven imperative programming and one of my colleagues Julian would is going to be presenting a webinar on this on April 28th so it's either going to go in-depth to the event-driven architecture and the advantages that it has as well as Amazon of Enbridge",
+      "created_at": "2020-04-09T18:08:20.522Z"
+    },
+    {
+      "text": "if you can't wait until then there will be a shorter session again with Ben ellerbee and another my colleagues changed bezek on Twitter on April 17th to lots of good event Bridge content coming up",
+      "created_at": "2020-04-09T18:08:33.475Z"
+    },
+    {
+      "text": "but if we look at",
+      "created_at": "2020-04-09T18:08:36.546Z"
+    },
+    {
+      "text": "the sorry I want to go back to the architectural pattern real quick so we talked about event Bridge sort of as the backbone of the application and we're going to build that out today and then AWS step functions workflows to do all the work so we were talking about events here were talking about business events write domain event if you're familiar with domain driven design",
+      "created_at": "2020-04-09T18:09:00.494Z"
+    },
+    {
+      "text": "unless this is a technical",
+      "created_at": "2020-04-09T18:09:03.652Z"
+    },
+    {
+      "text": "like if if your technical events are your business then that's what you're managing but here were talking about things like a customer subscribed and order was placed an order was returned these business domain event and then your workflows are analogous to your business processes which should already be really well defined and understood by your company so you can see that this is a way of making your your architecture really reflect your organization",
+      "created_at": "2020-04-09T18:09:32.554Z"
+    },
+    {
+      "text": "really really powerful to get to that shared understanding between engineering and development teams and business analytic teams",
+      "created_at": "2020-04-09T18:09:42.517Z"
+    },
+    {
+      "text": "there's another part of this",
+      "created_at": "2020-04-09T18:09:47.481Z"
+    },
+    {
+      "text": "it's not yet represented in the diagram but for example your data stores will be handled Larsen via service integration for things that aren't latency sensitive the service integration is just when one service calls another service directly without some piece of glue like a Lambda function in between an AWS Lambda function and one of the things that's so powerful about these is that they're not bound to run times or dependencies or even the the vulnerabilities that might show up if you choose one of those they are AWS native which means that we're just handling the transformation and declarative",
+      "created_at": "2020-04-09T18:10:31.539Z"
+    },
+    {
+      "text": "so there you know rigorously provable when you get all the benefits that you get whenever you use",
+      "created_at": "2020-04-09T18:10:36.513Z"
+    },
+    {
+      "text": "declarative language",
+      "created_at": "2020-04-09T18:10:39.499Z"
+    },
+    {
+      "text": "and then finally some audit and monitoring considerations if you're responsible for security you should be looking at this architecture in your eyes should be lining up right or if you're on an internal it audit team or you're an external IT Auditor whenever I talk about these rules in the filters right here they kick off work clothes when they have multiple listeners rule can pass events to or can trigger an invitation for up to 5 listeners but one of those listeners can be in SNS topic and Amazon SNS topic which means that you can have this massive",
+      "created_at": "2020-04-09T18:11:16.525Z"
+    },
+    {
+      "text": "find events that you want to listen to for from an audit perspective of high-risk Eventbrite if you have a",
+      "created_at": "2020-04-09T18:11:23.511Z"
+    },
+    {
+      "text": "pending transaction for over $10,000 or an account withdrawal for over $10,000 or if you have your ex number of transactions in a. Of time like just ways that you can build these things up so that your audit functionalities also declared an input that off somewhere else where only your audit team has access to it same thing for security whenever you see those high-risk evaluations are operations you can filter on those so that your security team gets exactly the information that it wants to see without being overloaded and again just the ability for an event to be published you don't have to know ahead of time who's going to care about it so all you do is put the event out there and then it's up to the consumers to determine that they care about it and if they want to see it",
+      "created_at": "2020-04-09T18:12:16.479Z"
+    },
+    {
+      "text": "off to be the link to sign up for his webinar that webinars title choosing events Q's topics and streams in your service application that's going to be a much deeper dive into this house right now we're sort of looking at the architecture of a specific application that were building",
+      "created_at": "2020-04-09T18:12:31.595Z"
+    },
+    {
+      "text": "so enough about that we're going to come down to here and this is just that basic architecture to demonstrate that but if you go into the post from Ben Ellerbe that I dropped earlier",
+      "created_at": "2020-04-09T18:12:44.493Z"
+    },
+    {
+      "text": "8 step process for understanding The Event Center in your system and arriving at ultimately at arriving in an architecture",
+      "created_at": "2020-04-09T18:12:52.501Z"
+    },
+    {
+      "text": "and the first step of this is event discovery",
+      "created_at": "2020-04-09T18:12:56.522Z"
+    },
+    {
+      "text": "so I want to go here and talk about our",
+      "created_at": "2020-04-09T18:13:03.489Z"
+    },
+    {
+      "text": "innuendo here I'm going to I'm going to go find some events that I listed",
+      "created_at": "2020-04-09T18:13:06.501Z"
+    },
+    {
+      "text": "AR application",
+      "created_at": "2020-04-09T18:13:08.509Z"
+    },
+    {
+      "text": "is going to be called just any company right it's a we're going to use a SAS company as an example and I chose this ass company because we as Builders are probably familiar with the concepts of software-as-a-service but also because there's some Core Business things there that we can look at that will be in all line of business applications and then the like the operations inside of it",
+      "created_at": "2020-04-09T18:13:36.605Z"
+    },
+    {
+      "text": "we're not even going to build those out we're going to model them will back wheel model the bounded context for the domain",
+      "created_at": "2020-04-09T18:13:41.482Z"
+    },
+    {
+      "text": "Sarah but we're not going to write the code for those because that is where you're going to write your code and at this point",
+      "created_at": "2020-04-09T18:13:50.525Z"
+    },
+    {
+      "text": "giardino how to write your code for your company's business",
+      "created_at": "2020-04-09T18:13:54.487Z"
+    },
+    {
+      "text": "so the first thing you do for me come back over here to our diagram the first step in event storming is event Discovery and this is where you just get your team together and you just start listing all the events that are going to occur in your application and so I did some work on this yesterday and we got one two three four five six seven eight nine 10 11 that I came up with so that's one two three four five six seven eight nine 10 11",
+      "created_at": "2020-04-09T18:14:27.532Z"
+    },
+    {
+      "text": "and it's not important at this point to put them in any kind of order it's not important to try to group them. Important to do anything other than this is just a brainstorming session where all your stakeholders so to say look at these are the things that happened in our business we provide a license a subscription renews and they're going to be noun past tense verb right so a customer subscribed or a customer cancelled or I'm actually reading the ones we're going to use now or a subscription expired a subscription renewed so this is at this stage how you get to those events so I'm going to give these here",
+      "created_at": "2020-04-09T18:15:05.593Z"
+    },
+    {
+      "text": "customer subscribed and these aren't in order Sons can put them anywhere",
+      "created_at": "2020-04-09T18:15:12.744Z"
+    },
+    {
+      "text": "cancelled you don't even need to worry about consistent terminology at this point right if I call one thing and I did this even with myself just brainstorming in one place I called it a customer another place I called it an account that's okay this is not in the step for that right it's a you may never reconcile that that's why the bounded context or so important",
+      "created_at": "2020-04-09T18:15:33.525Z"
+    },
+    {
+      "text": "subscription expired",
+      "created_at": "2020-04-09T18:15:37.521Z"
+    },
+    {
+      "text": "the god subscription renewed",
+      "created_at": "2020-04-09T18:15:44.489Z"
+    },
+    {
+      "text": "we've got payment failed",
+      "created_at": "2020-04-09T18:15:49.808Z"
+    },
+    {
+      "text": "we've got payment succeeded you can tell I don't think in order right cuz the next month payment attempted which has to come before both of those but that's alright that's another step",
+      "created_at": "2020-04-09T18:16:04.484Z"
+    },
+    {
+      "text": "wanted to talk about this concept real quick for these next events",
+      "created_at": "2020-04-09T18:16:08.611Z"
+    },
+    {
+      "text": "Mission initiated this is this is a concept just for this for the series as we build operation is just any core business operation",
+      "created_at": "2020-04-09T18:16:19.532Z"
+    },
+    {
+      "text": "so rather than building out",
+      "created_at": "2020-04-09T18:16:23.527Z"
+    },
+    {
+      "text": "like all the examples in liked bikeshedding or Yak shaving over like how do we actually want to run our business we're not trying to build a business here this is the part where your team will do this so whatever is hellerup 12 thanks for the are you up to",
+      "created_at": "2020-04-09T18:16:40.652Z"
+    },
+    {
+      "text": "this is the part where you just want to get everything out",
+      "created_at": "2020-04-09T18:16:44.614Z"
+    },
+    {
+      "text": "but this is also these sort of operation ones or where I've got none and where you're going to have a lot",
+      "created_at": "2020-04-09T18:16:55.515Z"
+    },
+    {
+      "text": "operation initiated operations",
+      "created_at": "2020-04-09T18:16:59.613Z"
+    },
+    {
+      "text": "and operation failed those are just my sort of generics",
+      "created_at": "2020-04-09T18:17:04.640Z"
+    },
+    {
+      "text": "and last but not least I came up with account created because of the concept that you know maybe you allow people to sign up without a subscription is a test or whatever you know you can I'm not here to tell you how to run your business but these are just examples right now",
+      "created_at": "2020-04-09T18:17:24.495Z"
+    },
+    {
+      "text": "so that we can focus on the concept your team will get these two whatever dep's it understands its processes",
+      "created_at": "2020-04-09T18:17:35.506Z"
+    },
+    {
+      "text": "so that's the first step",
+      "created_at": "2020-04-09T18:17:36.552Z"
+    },
+    {
+      "text": "stormy's event discovery",
+      "created_at": "2020-04-09T18:17:39.700Z"
+    },
+    {
+      "text": "now we're going to highlight all these",
+      "created_at": "2020-04-09T18:17:42.585Z"
+    },
+    {
+      "text": "we're here into",
+      "created_at": "2020-04-09T18:17:46.521Z"
+    },
+    {
+      "text": "so Step2 is temporal sequencing so we're just putting all the events in time order left to right so if we do this here",
+      "created_at": "2020-04-09T18:17:58.529Z"
+    },
+    {
+      "text": "see how I did this at a time the first thing that happens at user shows up in an account is created like none of the rest of this happens until they have an account",
+      "created_at": "2020-04-09T18:18:06.491Z"
+    },
+    {
+      "text": "and then let's say we have a gated Sim",
+      "created_at": "2020-04-09T18:18:11.516Z"
+    },
+    {
+      "text": "scenario right you don't have a subscription you can't use if there's no free tier so the first thing they have to do is payment attempted",
+      "created_at": "2020-04-09T18:18:17.522Z"
+    },
+    {
+      "text": "and there's a payment succeeded or payment failed a kind of",
+      "created_at": "2020-04-09T18:18:27.529Z"
+    },
+    {
+      "text": "having those two together on when I did this last night it was late last night when I was working on this y'all so you know if you see a mistake it's a mistake call me out and and let's fix it by so payment to Cedar payment failed right at that point hopefully payment succeeds and we got the customer subscribed right so all this makes sense so far now that they subscribe they can do stuff so operation initiated",
+      "created_at": "2020-04-09T18:18:55.482Z"
+    },
+    {
+      "text": "for the same I either succeeded or failed scenario which is where you're going into like monitoring and alerting observability of your application",
+      "created_at": "2020-04-09T18:19:05.548Z"
+    },
+    {
+      "text": "maybe at some point",
+      "created_at": "2020-04-09T18:19:09.496Z"
+    },
+    {
+      "text": "you know the monthly. Is up there going to renew and then",
+      "created_at": "2020-04-09T18:19:13.500Z"
+    },
+    {
+      "text": "either you know they",
+      "created_at": "2020-04-09T18:19:17.580Z"
+    },
+    {
+      "text": "cancel Allure you know they let their subscription expire",
+      "created_at": "2020-04-09T18:19:21.568Z"
+    },
+    {
+      "text": "left to right weave",
+      "created_at": "2020-04-09T18:19:25.571Z"
+    },
+    {
+      "text": "he's in the order that we expect to experience all of them",
+      "created_at": "2020-04-09T18:19:28.508Z"
+    },
+    {
+      "text": "that's nice of moobot moobot must be dropping those links in there for you every five minutes at school whenever I set something up in the Stream and forget about it so hopefully you're all seeing those as well but again if you need the doctor the links just use the doctor links command there in the chat and we'll provide him to you so that step to temporal sequencing",
+      "created_at": "2020-04-09T18:19:53.486Z"
+    },
+    {
+      "text": "let's say that",
+      "created_at": "2020-04-09T18:19:57.493Z"
+    },
+    {
+      "text": "now the third step is trigger detection this is optional until not even going to go into it go check out the blog post you'll get the details and determine whether or not you need to do it for your organization and then step for we're going to categorize these into entities and Aggregates so I'm going to copy all of these and pull them over",
+      "created_at": "2020-04-09T18:20:18.557Z"
+    },
+    {
+      "text": "I'll look it up nice and it took him out to order for me but it actually helps we're not going to deal with Aggregates going to deal with entities here",
+      "created_at": "2020-04-09T18:20:28.619Z"
+    },
+    {
+      "text": "so we see who got customer customer what else",
+      "created_at": "2020-04-09T18:20:36.638Z"
+    },
+    {
+      "text": "created so all of these are sort of related Concepts right I should",
+      "created_at": "2020-04-09T18:20:42.708Z"
+    },
+    {
+      "text": "I didn't do that on purpose, but it does",
+      "created_at": "2020-04-09T18:20:44.535Z"
+    },
+    {
+      "text": "actually fit exactly but whatever so we can make this",
+      "created_at": "2020-04-09T18:20:51.682Z"
+    },
+    {
+      "text": "don't worry I'll fix all this for us so this is a customer right",
+      "created_at": "2020-04-09T18:20:58.501Z"
+    },
+    {
+      "text": "send that to the back",
+      "created_at": "2020-04-09T18:21:02.504Z"
+    },
+    {
+      "text": "all right well maybe maybe that wasn't the smartest place to put the text for that",
+      "created_at": "2020-04-09T18:21:07.549Z"
+    },
+    {
+      "text": "all right",
+      "created_at": "2020-04-09T18:21:16.504Z"
+    },
+    {
+      "text": "tournament I know the screen is a little small let me see we should be able to bring this bigger a little bit now that we've got them group together",
+      "created_at": "2020-04-09T18:21:25.699Z"
+    },
+    {
+      "text": "DJ",
+      "created_at": "2020-04-09T18:21:29.505Z"
+    },
+    {
+      "text": "says you see him thanks buddy",
+      "created_at": "2020-04-09T18:21:31.565Z"
+    },
+    {
+      "text": "I'm on a mission to pronounce your name the way that you wanted to be for now",
+      "created_at": "2020-04-09T18:21:35.501Z"
+    },
+    {
+      "text": "Evermore great song by the way Evermore",
+      "created_at": "2020-04-09T18:21:38.573Z"
+    },
+    {
+      "text": "okay so that's the first one that we got the subscription",
+      "created_at": "2020-04-09T18:21:42.642Z"
+    },
+    {
+      "text": "let me see coming around over here",
+      "created_at": "2020-04-09T18:21:45.628Z"
+    },
+    {
+      "text": "subscription expired what else would go in here",
+      "created_at": "2020-04-09T18:21:49.536Z"
+    },
+    {
+      "text": "do we have like a subscription canceled",
+      "created_at": "2020-04-09T18:21:55.791Z"
+    },
+    {
+      "text": "turn up",
+      "created_at": "2020-04-09T18:21:58.792Z"
+    },
+    {
+      "text": "red subscription renewed subscribe",
+      "created_at": "2020-04-09T18:22:02.539Z"
+    },
+    {
+      "text": "customer canceled and I guess I pulled that back in over here you make me sound like a c I almost hit it",
+      "created_at": "2020-04-09T18:22:10.569Z"
+    },
+    {
+      "text": "the wrong Nicks Edge lovely person and if you watch this strange will see that so this is our",
+      "created_at": "2020-04-09T18:22:20.581Z"
+    },
+    {
+      "text": "striptease capitals",
+      "created_at": "2020-04-09T18:22:23.526Z"
+    },
+    {
+      "text": "are subscription inity right here",
+      "created_at": "2020-04-09T18:22:27.617Z"
+    },
+    {
+      "text": "subscription",
+      "created_at": "2020-04-09T18:22:32.667Z"
+    },
+    {
+      "text": "and this is just like a real quick way of",
+      "created_at": "2020-04-09T18:22:37.531Z"
+    },
+    {
+      "text": "modeling our domain",
+      "created_at": "2020-04-09T18:22:41.537Z"
+    },
+    {
+      "text": "really what this is so at this stuff you'll notice we're still not like writing code right we're going to write some code today I promise it's literally like 11 lines fantastic a little code for this application you're never going to believe it but it's how it's going to go and then we have",
+      "created_at": "2020-04-09T18:23:02.553Z"
+    },
+    {
+      "text": "coming clear here they're coming into Focus who got payments",
+      "created_at": "2020-04-09T18:23:07.546Z"
+    },
+    {
+      "text": "you don't have to make little hexagons out of all these right I just",
+      "created_at": "2020-04-09T18:23:15.598Z"
+    },
+    {
+      "text": "pretty so you know",
+      "created_at": "2020-04-09T18:23:17.493Z"
+    },
+    {
+      "text": "yeah you got to take time to appreciate the little things in life so like when your application gives you a",
+      "created_at": "2020-04-09T18:23:23.497Z"
+    },
+    {
+      "text": "pretty little beehive there",
+      "created_at": "2020-04-09T18:23:26.501Z"
+    },
+    {
+      "text": "what's the odds group please",
+      "created_at": "2020-04-09T18:23:32.504Z"
+    },
+    {
+      "text": "you're not over here",
+      "created_at": "2020-04-09T18:23:38.511Z"
+    },
+    {
+      "text": "alright so that was what he meant",
+      "created_at": "2020-04-09T18:23:40.487Z"
+    },
+    {
+      "text": "I don't even remember anymore we'll figure out",
+      "created_at": "2020-04-09T18:23:44.666Z"
+    },
+    {
+      "text": "send that to buy payments School",
+      "created_at": "2020-04-09T18:23:52.537Z"
+    },
+    {
+      "text": "then must have been operation",
+      "created_at": "2020-04-09T18:23:56.781Z"
+    },
+    {
+      "text": "when you're building your actual model",
+      "created_at": "2020-04-09T18:24:01.518Z"
+    },
+    {
+      "text": "probably going to be much much much much much much bigger right and info",
+      "created_at": "2020-04-09T18:24:05.560Z"
+    },
+    {
+      "text": "probably be like several groups if you were doing like",
+      "created_at": "2020-04-09T18:24:09.550Z"
+    },
+    {
+      "text": "eCommerce you might have",
+      "created_at": "2020-04-09T18:24:12.541Z"
+    },
+    {
+      "text": "you might have inventory you might have",
+      "created_at": "2020-04-09T18:24:14.609Z"
+    },
+    {
+      "text": "turn you might have all these other things that are",
+      "created_at": "2020-04-09T18:24:16.604Z"
+    },
+    {
+      "text": "that's right so this sort of operations domain will just repeat over and over and over",
+      "created_at": "2020-04-09T18:24:23.491Z"
+    },
+    {
+      "text": "so that step for never going to take all of these",
+      "created_at": "2020-04-09T18:24:29.567Z"
+    },
+    {
+      "text": "copy these over let's see how this space I've no idea what's going to happen is going to be great",
+      "created_at": "2020-04-09T18:24:35.634Z"
+    },
+    {
+      "text": "okay okay I'm not mad about that that's that's workable we can work with this and we categorize these into bounded context and the goal here is to minimize and effect eliminate communication across contexts",
+      "created_at": "2020-04-09T18:24:53.502Z"
+    },
+    {
+      "text": "because when you have communication across contacts",
+      "created_at": "2020-04-09T18:24:56.535Z"
+    },
+    {
+      "text": "then you have tight coupling",
+      "created_at": "2020-04-09T18:24:59.494Z"
+    },
+    {
+      "text": "if a contact can't create and consume its own event if it needs another context in you actually haven't modeled that right so when I was doing this for our application I figured we can leave customer relations alone",
+      "created_at": "2020-04-09T18:25:20.509Z"
+    },
+    {
+      "text": "I think we're going to need to bring",
+      "created_at": "2020-04-09T18:25:23.677Z"
+    },
+    {
+      "text": "these into one thing called",
+      "created_at": "2020-04-09T18:25:28.511Z"
+    },
+    {
+      "text": "Finance",
+      "created_at": "2020-04-09T18:25:29.551Z"
+    },
+    {
+      "text": "sorry we're going to create we're going to bring these two into one thing called customer relations",
+      "created_at": "2020-04-09T18:25:37.557Z"
+    },
+    {
+      "text": "so we're going to take this guy right here",
+      "created_at": "2020-04-09T18:25:43.813Z"
+    },
+    {
+      "text": "right so now we've got a little customer relations one here",
+      "created_at": "2020-04-09T18:25:49.637Z"
+    },
+    {
+      "text": "we've got recalled his billing",
+      "created_at": "2020-04-09T18:25:58.495Z"
+    },
+    {
+      "text": "and be honest with you again I was building so late last night I don't remember if I put this here or hear this is the sort of thing that you will bike said about and argue back and forth but ultimately it's going to be the organizational terminology that wins out here that decides where this fits does do subscriptions belong to customers to do subscriptions belong to billing doesn't matter as long as ultimately you get agreement on it and then for us operations and again this is going to be several different context so",
+      "created_at": "2020-04-09T18:26:32.516Z"
+    },
+    {
+      "text": "little text box here",
+      "created_at": "2020-04-09T18:26:36.535Z"
+    },
+    {
+      "text": "don't call this what did you call this customer relations",
+      "created_at": "2020-04-09T18:26:39.511Z"
+    },
+    {
+      "text": "I look at this more I think I built it the other way but you know what it's a live stream so here we go",
+      "created_at": "2020-04-09T18:26:44.546Z"
+    },
+    {
+      "text": "let's see",
+      "created_at": "2020-04-09T18:26:52.553Z"
+    },
+    {
+      "text": "that step 5 categorization in a bounded context again I'm hitting the surface on all of these things",
+      "created_at": "2020-04-09T18:26:57.529Z"
+    },
+    {
+      "text": "so definitely go check out been supposed to get the",
+      "created_at": "2020-04-09T18:27:02.499Z"
+    },
+    {
+      "text": "to get the details and how you can make this work for your team",
+      "created_at": "2020-04-09T18:27:06.494Z"
+    },
+    {
+      "text": "so the 6th step",
+      "created_at": "2020-04-09T18:27:11.561Z"
+    },
+    {
+      "text": "giving names to our microservices right so once you created these bounded context you've actually named your microservices and so in our case we wound up with three of them",
+      "created_at": "2020-04-09T18:27:26.496Z"
+    },
+    {
+      "text": "that we've called customer",
+      "created_at": "2020-04-09T18:27:28.509Z"
+    },
+    {
+      "text": "the customer service",
+      "created_at": "2020-04-09T18:27:30.681Z"
+    },
+    {
+      "text": "billing service",
+      "created_at": "2020-04-09T18:27:33.551Z"
+    },
+    {
+      "text": "an operation service",
+      "created_at": "2020-04-09T18:27:37.551Z"
+    },
+    {
+      "text": "yes these are microservices know these are not single Lambda functions and I think Ben touches on this in his post as well resist the temptation to put everything about 1 service into a Lambda function",
+      "created_at": "2020-04-09T18:27:53.552Z"
+    },
+    {
+      "text": "a lot of reasons why you don't want to do that",
+      "created_at": "2020-04-09T18:27:56.520Z"
+    },
+    {
+      "text": "they're more difficult to maintain to colsaerts can be significantly longer depending on how many dependencies you include opinion on your run time three that Lambda function has to have all the permissions to do all the things that that service does rather than only the things that each piece needs to do right so if you think about a concept like cqrs or command query responsibility separation a customer Rider only needs access to write only customers into the date of store for the customer reader or even just an address reader would only need access to read only the address information about a customer to generate a label right so it wouldn't even be able to read pii so you can make that very low-risk function",
+      "created_at": "2020-04-09T18:28:48.578Z"
+    },
+    {
+      "text": "high but it has no access to data",
+      "created_at": "2020-04-09T18:28:50.559Z"
+    },
+    {
+      "text": "then you got like a medium risk",
+      "created_at": "2020-04-09T18:28:53.643Z"
+    },
+    {
+      "text": "the risk mitigation measure I really strongly recommend against building Lambda lifts as we call him or monolithic lambdas there are some reasons to do it if you if it's the right answer for you then you will know but if you don't know then it's not the right answer",
+      "created_at": "2020-04-09T18:29:11.613Z"
+    },
+    {
+      "text": "so that's the sixth step in this process right in and again if we were to think about these in terms that that DJ Deek would appreciate we can consider each of these a Sam in AWS an application and we'll come back to that a little bit as we get to the command line",
+      "created_at": "2020-04-09T18:29:32.503Z"
+    },
+    {
+      "text": "here we are at step 6",
+      "created_at": "2020-04-09T18:29:35.538Z"
+    },
+    {
+      "text": "step 7 we can come back over here",
+      "created_at": "2020-04-09T18:29:38.522Z"
+    },
+    {
+      "text": "and we create a single custom event",
+      "created_at": "2020-04-09T18:29:42.493Z"
+    },
+    {
+      "text": "Lambda fix not lamp to fix",
+      "created_at": "2020-04-09T18:29:47.639Z"
+    },
+    {
+      "text": "I am the list that is an unofficial term and I'm using it",
+      "created_at": "2020-04-09T18:29:52.612Z"
+    },
+    {
+      "text": "monolithic Lambda",
+      "created_at": "2020-04-09T18:29:57.551Z"
+    },
+    {
+      "text": "Express JS applique",
+      "created_at": "2020-04-09T18:30:00.677Z"
+    },
+    {
+      "text": "Jan the entire thing into",
+      "created_at": "2020-04-09T18:30:02.648Z"
+    },
+    {
+      "text": "AWS Lambda function that's what we're talking about there as opposed to a Lambda function that takes a single highly granular type of input performs one business operation and returns a single highly granular type of output that can be tightly restricted",
+      "created_at": "2020-04-09T18:30:21.544Z"
+    },
+    {
+      "text": "is make sense",
+      "created_at": "2020-04-09T18:30:24.543Z"
+    },
+    {
+      "text": "I feel no I didn't I was worried that I lost my chat thing there but now I see you",
+      "created_at": "2020-04-09T18:30:30.634Z"
+    },
+    {
+      "text": "there is a DJ Gig",
+      "created_at": "2020-04-09T18:30:34.500Z"
+    },
+    {
+      "text": "so we come back to her architecture here in Step 7 is just to create a single custom of that bus",
+      "created_at": "2020-04-09T18:30:40.519Z"
+    },
+    {
+      "text": "in confirmation",
+      "created_at": "2020-04-09T18:30:43.508Z"
+    },
+    {
+      "text": "but I want to return to this real quick",
+      "created_at": "2020-04-09T18:30:46.510Z"
+    },
+    {
+      "text": "a workflow",
+      "created_at": "2020-04-09T18:30:50.574Z"
+    },
+    {
+      "text": "is not a micro service",
+      "created_at": "2020-04-09T18:30:52.531Z"
+    },
+    {
+      "text": "and in microservices not a workflow",
+      "created_at": "2020-04-09T18:30:56.593Z"
+    },
+    {
+      "text": "so in each micro service we would expect to see multiple workflows but we're not diagramming these out at this point in fact there's not really",
+      "created_at": "2020-04-09T18:31:09.645Z"
+    },
+    {
+      "text": "that you would diagram all of those because they're not known at build time right this is an architecture than Abel's iteration so you don't necessarily want to try to",
+      "created_at": "2020-04-09T18:31:20.511Z"
+    },
+    {
+      "text": "the future",
+      "created_at": "2020-04-09T18:31:22.498Z"
+    },
+    {
+      "text": "clothes that will run against this you just want to know the ones you have today and know which microservice table",
+      "created_at": "2020-04-09T18:31:27.508Z"
+    },
+    {
+      "text": "and then",
+      "created_at": "2020-04-09T18:31:32.520Z"
+    },
+    {
+      "text": "capture those okay alright so I promised you some cloud formation",
+      "created_at": "2020-04-09T18:31:40.528Z"
+    },
+    {
+      "text": "isn't it with c l o m t repo here nothing in it",
+      "created_at": "2020-04-09T18:31:46.857Z"
+    },
+    {
+      "text": "I'm going to cheat I'm going to show you a little hack here that I like to do I never create my own cloud formation as Eric will tell you one fun thing about Sam is it is a superset of cloud formation or transformation on cloud formation so we can do something like this",
+      "created_at": "2020-04-09T18:32:06.520Z"
+    },
+    {
+      "text": "and create a quick start right here",
+      "created_at": "2020-04-09T18:32:11.497Z"
+    },
+    {
+      "text": "and then that gives us an application to read me in my case I make file cuz I did it was going to template will the templates all we want",
+      "created_at": "2020-04-09T18:32:23.727Z"
+    },
+    {
+      "text": "it's right here",
+      "created_at": "2020-04-09T18:32:26.518Z"
+    },
+    {
+      "text": "now I can get rid of the rest of yeah right",
+      "created_at": "2020-04-09T18:32:28.537Z"
+    },
+    {
+      "text": "and so now",
+      "created_at": "2020-04-09T18:32:30.514Z"
+    },
+    {
+      "text": "confirmation",
+      "created_at": "2020-04-09T18:32:33.504Z"
+    },
+    {
+      "text": "so",
+      "created_at": "2020-04-09T18:32:36.743Z"
+    },
+    {
+      "text": "shut off",
+      "created_at": "2020-04-09T18:32:38.498Z"
+    },
+    {
+      "text": "this is a",
+      "created_at": "2020-04-09T18:32:42.547Z"
+    },
+    {
+      "text": "sample Sam template for a shared force a map that is true that is correct",
+      "created_at": "2020-04-09T18:32:50.585Z"
+    },
+    {
+      "text": "Bassett up right",
+      "created_at": "2020-04-09T18:32:55.514Z"
+    },
+    {
+      "text": "not bass like the born-again stuff but we're just going to assault it so we don't actually need that transform so we'll take serverless out since we take serverless out Tony Global's cuz we don't have functions we don't even function",
+      "created_at": "2020-04-09T18:33:09.680Z"
+    },
+    {
+      "text": "still have functions don't need any of these outputs",
+      "created_at": "2020-04-09T18:33:13.637Z"
+    },
+    {
+      "text": "does ramen Yelp",
+      "created_at": "2020-04-09T18:33:16.529Z"
+    },
+    {
+      "text": "very like not interesting right",
+      "created_at": "2020-04-09T18:33:20.500Z"
+    },
+    {
+      "text": "but this is any company",
+      "created_at": "2020-04-09T18:33:25.615Z"
+    },
+    {
+      "text": "Amazon event Bridge",
+      "created_at": "2020-04-09T18:33:28.636Z"
+    },
+    {
+      "text": "bus",
+      "created_at": "2020-04-09T18:33:30.546Z"
+    },
+    {
+      "text": "and this is just sorry I was fighting description",
+      "created_at": "2020-04-09T18:33:35.545Z"
+    },
+    {
+      "text": "Dent bus declaration for the any company sample SAS application cool",
+      "created_at": "2020-04-09T18:33:46.662Z"
+    },
+    {
+      "text": "pretty boring because there's nothing in",
+      "created_at": "2020-04-09T18:33:48.628Z"
+    },
+    {
+      "text": "do anything honestly the real reason I do this is because I always forget this key string and for me the salmon it is as fast as going and looking it up",
+      "created_at": "2020-04-09T18:33:59.568Z"
+    },
+    {
+      "text": "going to go look stuff up",
+      "created_at": "2020-04-09T18:34:00.582Z"
+    },
+    {
+      "text": "all right there's a vent bridge in the console will come back to you",
+      "created_at": "2020-04-09T18:34:08.574Z"
+    },
+    {
+      "text": "I already had this pre-staged but",
+      "created_at": "2020-04-09T18:34:12.559Z"
+    },
+    {
+      "text": "cloudformation General you can just do AWS:: whatever you're looking for doesn't necessarily have to be in the right order event Bridge that's going to be the wrong thing right. You're probably still going to get there right so it's kind of been purged documentation going to the user guide Etc but in this case as you would have seen from Eric's episode earlier the proper resource type for a custom event bus is AWS events event bus so it's bring all this and real quick",
+      "created_at": "2020-04-09T18:34:47.517Z"
+    },
+    {
+      "text": "resources",
+      "created_at": "2020-04-09T18:34:52.592Z"
+    },
+    {
+      "text": "what are we going to call you",
+      "created_at": "2020-04-09T18:34:55.521Z"
+    },
+    {
+      "text": "I'm super creative",
+      "created_at": "2020-04-09T18:34:57.522Z"
+    },
+    {
+      "text": "summer color event bus",
+      "created_at": "2020-04-09T18:34:59.581Z"
+    },
+    {
+      "text": "like Erica have paste issues",
+      "created_at": "2020-04-09T18:35:05.634Z"
+    },
+    {
+      "text": "miss any company you can name it anything you want this event Source named Eric talked about this a little bit in his session as well bridge is powerful one thing that it does we haven't talked about is ingest third-party events so from other South providers like zendesk for example of customer service tickets you can ingest those events directly and what happens is the provider passes it to your AWS account without ever leaving AWS and you create a custom bus that set up to consume those events that is one thing that event Bridge does another thing that have been Bridge does today as you have a default event bus already in your account in every region where it's available that is receiving all of your AWS account events so that you can listen to them as well that's cuz it's grew out of car wash events",
+      "created_at": "2020-04-09T18:35:58.612Z"
+    },
+    {
+      "text": "but as I said this event Source name this is specific to that third-party use case which we're not doing our architecture is first-party it's how we're building our our company's application so it's boring is this is that's it this is all we do to create our own",
+      "created_at": "2020-04-09T18:36:20.499Z"
+    },
+    {
+      "text": "now",
+      "created_at": "2020-04-09T18:36:23.521Z"
+    },
+    {
+      "text": "I also want to get into these properties and return values the ones that were going to be concerned with",
+      "created_at": "2020-04-09T18:36:31.554Z"
+    },
+    {
+      "text": "are the a RN in the name the name is like we already have it because we've already named it but the air and I'll be useful for anything that consumes this stack so anything that wants like your your line of business applications your microservices will need to know that a RN of the event Bridge event bus to put their events on to the Boston to listen to her to put the rules on there as listeners as well so let's get the event bus AR in",
+      "created_at": "2020-04-09T18:37:04.522Z"
+    },
+    {
+      "text": "are in of the event bus",
+      "created_at": "2020-04-09T18:37:08.522Z"
+    },
+    {
+      "text": "and the value little",
+      "created_at": "2020-04-09T18:37:11.600Z"
+    },
+    {
+      "text": "get out what do we call this thing it's right there in front of me event bus. AR in",
+      "created_at": "2020-04-09T18:37:17.737Z"
+    },
+    {
+      "text": "what do the same thing for the name",
+      "created_at": "2020-04-09T18:37:21.686Z"
+    },
+    {
+      "text": "I forgot to turn on presentation mode my favorite screencast mode",
+      "created_at": "2020-04-09T18:37:31.694Z"
+    },
+    {
+      "text": "name the event boss name when you save it right okay",
+      "created_at": "2020-04-09T18:37:43.819Z"
+    },
+    {
+      "text": "is complete",
+      "created_at": "2020-04-09T18:37:45.552Z"
+    },
+    {
+      "text": "do I show you one more thing but this is a complete cloudformation template",
+      "created_at": "2020-04-09T18:37:50.569Z"
+    },
+    {
+      "text": "One stock one resource on it the sea",
+      "created_at": "2020-04-09T18:37:54.627Z"
+    },
+    {
+      "text": "in the properties of that event bus coming back out",
+      "created_at": "2020-04-09T18:37:58.551Z"
+    },
+    {
+      "text": "are you up 12 to get the confirmation extension for vs code as it can get you all the syntax hints for CF and resources CVS code see every time I do this I learn something so I learned that today",
+      "created_at": "2020-04-09T18:38:14.529Z"
+    },
+    {
+      "text": "just a minute I promise thank you for that tip there",
+      "created_at": "2020-04-09T18:38:16.509Z"
+    },
+    {
+      "text": "okay so we come back over here it's easy-peasy AWS cloudformation deploy stack you can also use tab tab tab completion here to arguments stock name",
+      "created_at": "2020-04-09T18:38:37.724Z"
+    },
+    {
+      "text": "Street let's see what I call you last night when I was testing",
+      "created_at": "2020-04-09T18:38:42.865Z"
+    },
+    {
+      "text": "oh nothing apparently",
+      "created_at": "2020-04-09T18:38:48.603Z"
+    },
+    {
+      "text": "Haystack name any company that makes sense since that's the name of our company on our our products here so AWS cloudformation it's deployed that's why I know that was working for me to arguments template and the stock name",
+      "created_at": "2020-04-09T18:39:04.567Z"
+    },
+    {
+      "text": "go ahead and deploy this",
+      "created_at": "2020-04-09T18:39:05.509Z"
+    },
+    {
+      "text": "now it's nice that that output is somewhere",
+      "created_at": "2020-04-09T18:39:11.537Z"
+    },
+    {
+      "text": "consumers narn but I do want to go back to this and what would be even better would be if we had it as a AWS systems manager parameter store value that we could then provide access to other accounts where the microservices would run or other values so that they can get it so successfully created updated stack any company that's awesome we can come back here to event bridge and look at our event buses and will see now that we have one customer event bus that we've created here any company",
+      "created_at": "2020-04-09T18:39:48.568Z"
+    },
+    {
+      "text": "and default permissions here so that's all it takes to get that on there that's not very exciting and that's by Design right so as we move through the series next week we're going to build an AWS step functions Express workflow to handle one of these business processes and at that point will show you how to create rules and filters and hook them up to listen to the event bus to consume those events",
+      "created_at": "2020-04-09T18:40:16.544Z"
+    },
+    {
+      "text": "I don't even know what the challenge was but cool",
+      "created_at": "2020-04-09T18:40:21.525Z"
+    },
+    {
+      "text": "I told you I wanted to do one more thing",
+      "created_at": "2020-04-09T18:40:23.509Z"
+    },
+    {
+      "text": "so go back here",
+      "created_at": "2020-04-09T18:40:26.636Z"
+    },
+    {
+      "text": "in our cloud formation and let's give ourselves the SSM parameter",
+      "created_at": "2020-04-09T18:40:31.709Z"
+    },
+    {
+      "text": "this one I looked up last night it is yeah sometimes it's too easy parameter it would be great if I had the cloudformation extension for vs code installed which would then give me the",
+      "created_at": "2020-04-09T18:40:47.564Z"
+    },
+    {
+      "text": "are you up to off saying this is another place where you could save me some time in fact I probably could have finished typing while I was talking about that but I just wanted to let you know I appreciate you",
+      "created_at": "2020-04-09T18:40:58.711Z"
+    },
+    {
+      "text": "description e a r n",
+      "created_at": "2020-04-09T18:41:02.557Z"
+    },
+    {
+      "text": "what other services to consume",
+      "created_at": "2020-04-09T18:41:08.581Z"
+    },
+    {
+      "text": "bus eireann type string value and again we'll just",
+      "created_at": "2020-04-09T18:41:16.524Z"
+    },
+    {
+      "text": "attribute hear from the event bus",
+      "created_at": "2020-04-09T18:41:19.592Z"
+    },
+    {
+      "text": "what is a dynamic reference",
+      "created_at": "2020-04-09T18:41:21.510Z"
+    },
+    {
+      "text": "go back over here easy day there's no special Syntax for create versus update on a stock so just run that off again",
+      "created_at": "2020-04-09T18:41:32.687Z"
+    },
+    {
+      "text": "what's interesting here yeah cuz I deleted the stock so it should I don't think I have one of these already let's see",
+      "created_at": "2020-04-09T18:41:39.521Z"
+    },
+    {
+      "text": "kind of me so far it's terrifying 41 minutes into this",
+      "created_at": "2020-04-09T18:41:43.608Z"
+    },
+    {
+      "text": "completing Alta I forgot about the whole audio thing at the beginning so all right",
+      "created_at": "2020-04-09T18:41:50.522Z"
+    },
+    {
+      "text": "Sleek created stack you can go over here too",
+      "created_at": "2020-04-09T18:41:53.525Z"
+    },
+    {
+      "text": "open up systems manager",
+      "created_at": "2020-04-09T18:41:59.534Z"
+    },
+    {
+      "text": "amateur store",
+      "created_at": "2020-04-09T18:42:03.510Z"
+    },
+    {
+      "text": "Tara there we go",
+      "created_at": "2020-04-09T18:42:07.530Z"
+    },
+    {
+      "text": "is there bus right there",
+      "created_at": "2020-04-09T18:42:08.643Z"
+    },
+    {
+      "text": "so now we can use I am to restrict or enable access",
+      "created_at": "2020-04-09T18:42:14.534Z"
+    },
+    {
+      "text": "this so that applications know where to go to look",
+      "created_at": "2020-04-09T18:42:18.590Z"
+    },
+    {
+      "text": "events to listen to events and to",
+      "created_at": "2020-04-09T18:42:22.527Z"
+    },
+    {
+      "text": "put events back onto the bus",
+      "created_at": "2020-04-09T18:42:27.546Z"
+    },
+    {
+      "text": "let me check my agenda here Kris shared schema all right there's two more things I want to talk about",
+      "created_at": "2020-04-09T18:42:34.526Z"
+    },
+    {
+      "text": "step eight in this process what we've done here is Step 7 create a single event Bridge event bus step eight is creating a shared schema",
+      "created_at": "2020-04-09T18:42:46.541Z"
+    },
+    {
+      "text": "place where it's best to just go into the documentation that command is bang docs! Docs here in chat will give you a link to the event Bridge documentation",
+      "created_at": "2020-04-09T18:43:02.524Z"
+    },
+    {
+      "text": "schemas we will get into them in future episodes",
+      "created_at": "2020-04-09T18:43:06.652Z"
+    },
+    {
+      "text": "so powerful is with the schema registry you get agreement about what a scheme of looks like what format looks like a cross services so the owning service owns its schema right it's responsible for them in to find them it has final authority over them but it doesn't do any good if they don't share them so we have AWS of Enbridge schema registry which is a place to share those share and discover those schema again will cover all of us in the future episode as we continue to build this application but you can see where this is going.",
+      "created_at": "2020-04-09T18:43:42.514Z"
+    },
+    {
+      "text": "applications knows exactly what it's putting on to the bus and consumers know exactly what they can be out there looking for even without having to communicate with those departments so pretty pretty powerful stuff there",
+      "created_at": "2020-04-09T18:43:53.629Z"
+    },
+    {
+      "text": "and that's step eight is building a shared schema so that is the complete walkthrough of Ben's blog post again a very quick walk-through very Purpose Driven so I would suggest you go back and have a read of that it's in the links in this Channel I want to go back to vs code for a second and talk about structure so what we've done here is put that template here in the root that's actually not how I want to leave this this is like classic operation stuff right",
+      "created_at": "2020-04-09T18:44:31.560Z"
+    },
+    {
+      "text": "make an operations director",
+      "created_at": "2020-04-09T18:44:34.780Z"
+    },
+    {
+      "text": "and then let's move the template there",
+      "created_at": "2020-04-09T18:44:37.869Z"
+    },
+    {
+      "text": "and",
+      "created_at": "2020-04-09T18:44:41.533Z"
+    },
+    {
+      "text": "realistically when you're building this application this is this is now its own repo right we want to have everything in one place for the purposes of for learning purposes so that you can see it but each team each microservice etcetera would Define its own single or multiple repos right so just because we're putting everything in one repo here not best practice you would if you had your code separated into multiple repos you can have multiple cicd pipeline even for multiple providers you can do whatever works for your team self-organizing tools or self-organizing teams using the tools that help them work",
+      "created_at": "2020-04-09T18:45:18.567Z"
+    },
+    {
+      "text": "for demonstration purposes but then we can also do things like in it",
+      "created_at": "2020-04-09T18:45:26.591Z"
+    },
+    {
+      "text": "and I'm going to do this because I'm not going to do that because I'm so used to doing that what did we call are microservices",
+      "created_at": "2020-04-09T18:45:32.667Z"
+    },
+    {
+      "text": "I'm going to I'm going to go out on a limb here",
+      "created_at": "2020-04-09T18:45:38.514Z"
+    },
+    {
+      "text": "do this in nodejs",
+      "created_at": "2020-04-09T18:45:42.670Z"
+    },
+    {
+      "text": "more of you so we can take better advantage of the event Birds",
+      "created_at": "2020-04-09T18:45:47.543Z"
+    },
+    {
+      "text": "so I'm going to go pretty far outside of my comfort zone",
+      "created_at": "2020-04-09T18:45:51.633Z"
+    },
+    {
+      "text": "I've written some nodejs it's been awhile",
+      "created_at": "2020-04-09T18:45:56.541Z"
+    },
+    {
+      "text": "do that to build our services",
+      "created_at": "2020-04-09T18:45:58.693Z"
+    },
+    {
+      "text": "fun we had we had customer billing and operations",
+      "created_at": "2020-04-09T18:46:02.593Z"
+    },
+    {
+      "text": "so we can just create these three services that at this point do nothing",
+      "created_at": "2020-04-09T18:46:08.553Z"
+    },
+    {
+      "text": "billing",
+      "created_at": "2020-04-09T18:46:14.590Z"
+    },
+    {
+      "text": "and operations",
+      "created_at": "2020-04-09T18:46:17.653Z"
+    },
+    {
+      "text": "right",
+      "created_at": "2020-04-09T18:46:22.776Z"
+    },
+    {
+      "text": "stop",
+      "created_at": "2020-04-09T18:46:24.716Z"
+    },
+    {
+      "text": "yeah that was that's right that's because I I tried to create that we're already had one that was a very intelligent on me was it",
+      "created_at": "2020-04-09T18:46:32.802Z"
+    },
+    {
+      "text": "I tell you what you're smart enough to fail that so let's move operations to event bus",
+      "created_at": "2020-04-09T18:46:41.538Z"
+    },
+    {
+      "text": "and do that let's do the same thing again",
+      "created_at": "2020-04-09T18:46:46.592Z"
+    },
+    {
+      "text": "operation y'all remember that game from like that 80s you're the doctor collecting always pay any of the Little tweezers like few",
+      "created_at": "2020-04-09T18:46:56.540Z"
+    },
+    {
+      "text": "based on what you roll that came with hard again drove me nuts",
+      "created_at": "2020-04-09T18:46:59.544Z"
+    },
+    {
+      "text": "okay so this is sort of what this is going to look like what we're going to build out over the the lifetime of our project here right right now these aren't much of anything but eventually they're going to be complete microservices not eventbus that's just where are Ben bus cloudformation loves let's say you to this is going to be a Sam application they were going to build out",
+      "created_at": "2020-04-09T18:47:24.556Z"
+    },
+    {
+      "text": "and that's that.",
+      "created_at": "2020-04-09T18:47:27.533Z"
+    },
+    {
+      "text": "the cover for today",
+      "created_at": "2020-04-09T18:47:30.688Z"
+    },
+    {
+      "text": "quick review of what we've learned we went over the architectural pattern generally which is an event Bridge event bus moving left to right through time with events going on to the bus being listen to buy business processes that I like to think of generally represented as AWS step functions workflows that sort of run they sort of hang off of the event bus consuming events and typically putting output events back onto the bus until eventually there's an event on the bus that nobody cares about or the only consumer doesn't output events right so I can an audit type consumer might be the last one to consume an event and it doesn't need to provide any notification back that it captured it we talked about our specific",
+      "created_at": "2020-04-09T18:48:23.652Z"
+    },
+    {
+      "text": "software-as-a-service company",
+      "created_at": "2020-04-09T18:48:26.543Z"
+    },
+    {
+      "text": "which eating a little bit with operations domains we used benalla bees have been storming model to build out our events and to categorize and group them to put them within bounded context and to Define are microservices and then we went and wrote some cloudformation some very basic cloudformation to create an event Bridge custom event bus and used the Sam's CLI to create the skeletons that we're going to build out of for these for microservices that we bound and named so I'm going to stick around for a little bit if you got any questions please",
+      "created_at": "2020-04-09T18:49:10.517Z"
+    },
+    {
+      "text": "Eric Johnson session",
+      "created_at": "2020-04-09T18:49:11.555Z"
+    },
+    {
+      "text": "every Thursday on the 8th of us Channel 1 hour before this great resource to learn more about Sam he has another series happy little API which is Tuesday at that time slot that's 1 p.m. Eastern 10 a.m. Pacific every other Tuesday that'll be next Tuesday is the next episode for learning about HTTP API that are newly generally available again",
+      "created_at": "2020-04-09T18:49:40.580Z"
+    },
+    {
+      "text": "how much for the",
+      "created_at": "2020-04-09T18:49:42.517Z"
+    },
+    {
+      "text": "session but will also be with AWS serverless developer senior developer Advocate James bezek on Twitter on the 17th that's a week from tomorrow at noon Eastern 9 a.m. Pacific and again it'll be a senior developer Advocate Julian",
+      "created_at": "2020-04-09T18:50:01.735Z"
+    },
+    {
+      "text": "and that link was previously in the chat so lots of good resources coming up on that are next episode you would think I would know this off the top of my head but I don't let me go back to it I just don't wanna give you the wrong name",
+      "created_at": "2020-04-09T18:50:18.525Z"
+    },
+    {
+      "text": "I know it has to do with AWS step functions Express work clothes yes I've totaled it express workflows for quick running processes Express workflows are limited to 5 minutes of execution each which means",
+      "created_at": "2020-04-09T18:50:34.854Z"
+    },
+    {
+      "text": "it's not for your year-long",
+      "created_at": "2020-04-09T18:50:38.519Z"
+    },
+    {
+      "text": "if you sense like standard workflows atavistic function standard work clothes which will also address later",
+      "created_at": "2020-04-09T18:50:45.694Z"
+    },
+    {
+      "text": "thank you all for joining today I hope you found this useful thanks for sticking with us through some of the technical difficulties the Audio I haven't seen any questions in here touring gal looking forward thanks for streaming on looking forward to providing it for you thanks for joining us apologies if I've mispronounce your name that's kind of my thing that's what I do I don't do it on purpose you know he's sometimes you just got to take a stab at it",
+      "created_at": "2020-04-09T18:51:14.552Z"
+    },
+    {
+      "text": "are you at 12 at sunstream thank you very much thank you for the recommendation we're going to jump over here and get the cloud formation",
+      "created_at": "2020-04-09T18:51:21.585Z"
+    },
+    {
+      "text": "extension while we're still on before we forget about it",
+      "created_at": "2020-04-09T18:51:26.683Z"
+    },
+    {
+      "text": "AWS scripting guy",
+      "created_at": "2020-04-09T18:51:29.620Z"
+    },
+    {
+      "text": "The Clique is going to click install everything stall it",
+      "created_at": "2020-04-09T18:51:33.675Z"
+    },
+    {
+      "text": "no we go back over here",
+      "created_at": "2020-04-09T18:51:37.537Z"
+    },
+    {
+      "text": "close this app select",
+      "created_at": "2020-04-09T18:51:39.683Z"
+    },
+    {
+      "text": "see what this thing does for us real quick since we're still alive that one are you up to a perfect looks like I got the right one",
+      "created_at": "2020-04-09T18:51:50.516Z"
+    },
+    {
+      "text": "an untagged that's real Etsy",
+      "created_at": "2020-04-09T18:51:53.704Z"
+    },
+    {
+      "text": "oh",
+      "created_at": "2020-04-09T18:51:56.705Z"
+    },
+    {
+      "text": "call Liz so",
+      "created_at": "2020-04-09T18:51:58.673Z"
+    },
+    {
+      "text": "extension pruver",
+      "created_at": "2020-04-09T18:52:02.588Z"
+    },
+    {
+      "text": "approver of",
+      "created_at": "2020-04-09T18:52:04.687Z"
+    },
+    {
+      "text": "AWS",
+      "created_at": "2020-04-09T18:52:09.587Z"
+    },
+    {
+      "text": "who all right there's all kinds of kinds of cloudfront distribution type 8 okay why not let's have a cloudfront distribution",
+      "created_at": "2020-04-09T18:52:20.547Z"
+    },
+    {
+      "text": "see how that works there",
+      "created_at": "2020-04-09T18:52:22.723Z"
+    },
+    {
+      "text": "anime Justice",
+      "created_at": "2020-04-09T18:52:25.617Z"
+    },
+    {
+      "text": "the Cafe Rio queso you see what that's doing there is put it in the cloud formation snippet in yamo so awesome tip there are you up to off much appreciated added a new extension to my toolkit there",
+      "created_at": "2020-04-09T18:52:40.752Z"
+    },
+    {
+      "text": "I don't see any other questions to thank everybody for joining I will be back here next week same time and I will be back on the 8th of us Channel Tuesday at the same time it's 2 p.m. Eastern 11 a.m. Pacific for the next episode of AWS step functions of parallelism and concurrency three places to handle them at different areas in AWS step functions in AWS Lambda we're going to dive deep into where you should be handling those and how you can handle them in at each point so thanks everybody it's been a pleasure I'll see you Tuesday and Thursday by",
+      "created_at": "2020-04-09T18:53:16.540Z"
+    }
+  ]
+}

@@ -1,0 +1,1265 @@
+{
+  "name": "App 2025: Waiting for interaction with callbacks",
+  "messages": [
+    {
+      "text": "alright hi everybody welcome to this week's episode of 20-25 I'm Rob Sutter this week will be talking about waiting for interaction with callbacks",
+      "created_at": "2020-04-23T18:00:17.554Z"
+    },
+    {
+      "text": "before we get started on Wednesday thanks to everybody who sent feedback in you may not see your feedback immediately implemented in the streams because it takes some time for me to rework stuff but I really appreciate you getting in touch I really appreciate you letting me know what works and what doesn't work for you in particular I'm trying to eliminate those things that are getting in the way so hopefully this is a good episode for everybody and we see some of those improvements made",
+      "created_at": "2020-04-23T18:00:44.748Z"
+    },
+    {
+      "text": "talking about waiting for interaction with callbacks and this is a feature in AWS step functions standard work clothes that I absolutely love we're going to talk about when you use these what's or problems they solve of course we're going to do some building this week so real quick",
+      "created_at": "2020-04-23T18:01:06.509Z"
+    },
+    {
+      "text": "any company architecture that were building is apart about 20-25 we're going to review what we've built until now with the infrastructure and the beginnings of the customer microservice we're going to talk about 8",
+      "created_at": "2020-04-23T18:01:20.507Z"
+    },
+    {
+      "text": "you need to use if you want to use callbacks we're going to talk about service Integrations a little bit and so if you joined us for the AWS step functions episode on the 14th of April on the 8th of us Channel this will be pretty familiar with",
+      "created_at": "2020-04-23T18:01:40.503Z"
+    },
+    {
+      "text": "the talk about callbacks",
+      "created_at": "2020-04-23T18:01:42.519Z"
+    },
+    {
+      "text": "then we're going to talk about how you do call backs and that's with that wait for task token invocation pattern",
+      "created_at": "2020-04-23T18:01:50.501Z"
+    },
+    {
+      "text": "workflow which hangs off of one of those events that we designed in our first episode 2 weeks back when we did the event storming",
+      "created_at": "2020-04-23T18:01:58.586Z"
+    },
+    {
+      "text": "so again you already here on my twitch Channel if you have any questions either drop them in the chat I'm paying attention and I'll have some of my colleagues here as moderators as well or if you're seeing this later please feel free to get in touch on Twitter my DMs are open just let me know how I can help",
+      "created_at": "2020-04-23T18:02:14.506Z"
+    },
+    {
+      "text": "so",
+      "created_at": "2020-04-23T18:02:17.689Z"
+    },
+    {
+      "text": "first we're going to review this architecture and we started building this and we said again left to right along our custom Amazon a beverage eventbus we're just putting events onto the bus and these are business events that we've gone through and defined using that event storming methodology so we've already built one workflow for subscription expired and today we're going to build a workflow that handles the account created event",
+      "created_at": "2020-04-23T18:02:43.539Z"
+    },
+    {
+      "text": "each workflow is a business process",
+      "created_at": "2020-04-23T18:02:47.613Z"
+    },
+    {
+      "text": "tattoos to the event bus via Rule and listens for the specific events that cares about via a filter powder",
+      "created_at": "2020-04-23T18:02:55.601Z"
+    },
+    {
+      "text": "this means that multiple Services don't have to worry about or even be aware of other services they just concern themselves with attaching and consuming the events that they care about and then producing the output events from their own processes and that's it so it's a very Loosely coupled architecture that allows you to iterate each component independently",
+      "created_at": "2020-04-23T18:03:19.520Z"
+    },
+    {
+      "text": "sweetness workflow is implemented with an a",
+      "created_at": "2020-04-23T18:03:22.609Z"
+    },
+    {
+      "text": "functions Express workflow again this week we're going to be doing a standard workflow to support that call back pattern and then when you look at this in code",
+      "created_at": "2020-04-23T18:03:31.528Z"
+    },
+    {
+      "text": "we've split these into separate folders here in this repo and let me put this repo in the chat for you",
+      "created_at": "2020-04-23T18:03:41.681Z"
+    },
+    {
+      "text": "we split them into separate folders and separate either they're all Sam applications AWS Sam applications",
+      "created_at": "2020-04-23T18:03:51.526Z"
+    },
+    {
+      "text": "reality you're going to want these to be different accounts within your organization right but that's just gets a little bit unwieldy for managing an example application like this right so again will see it in the read me as well if you clone this what we built was a an event bus a custom event bus in here in our infrastructure and then we had built that workflow on customer all right",
+      "created_at": "2020-04-23T18:04:15.666Z"
+    },
+    {
+      "text": "I want to talk about the dip",
+      "created_at": "2020-04-23T18:04:19.557Z"
+    },
+    {
+      "text": "in Express work clothes in standard work",
+      "created_at": "2020-04-23T18:04:22.530Z"
+    },
+    {
+      "text": "and again we went over this a little bit last week from",
+      "created_at": "2020-04-23T18:04:24.507Z"
+    },
+    {
+      "text": "Express work clothes and why you would choose them I want to go over it from the perspective of a standard workflow and why you would choose that there's a couple of good reasons essrig King hello hello to you thanks for joining against good to see you back",
+      "created_at": "2020-04-23T18:04:41.556Z"
+    },
+    {
+      "text": "to write standard work clothes one in development I would argue that you should always write a standard workflow unless you have a reason not to it lets you see the execution step through and debug the states it's a little more simple when you're getting things right you hand that responsibility off to login via cloudwatch logs when you move to express work clothes",
+      "created_at": "2020-04-23T18:05:00.612Z"
+    },
+    {
+      "text": "X Factor in consider",
+      "created_at": "2020-04-23T18:05:04.562Z"
+    },
+    {
+      "text": "is if you have you need to have lower volume",
+      "created_at": "2020-04-23T18:05:08.508Z"
+    },
+    {
+      "text": "so your default service limits for standard work clothes are 2,000 starts per second compared to over a hundred thousand starts for second for express workflows really big difference there",
+      "created_at": "2020-04-23T18:05:22.508Z"
+    },
+    {
+      "text": "cause of things and then the other reason to do this is if you have longer running workflows because if you remember those Express workflows are limited to 5 minutes of execution if we're quick running automated tasks even if it's a third-party API call or something if you've got an SLA that keeps it under 5 minutes then that's a suitable solution but if you for example use spot instances or something like that then you'll want to use standard work clothes as well and real quick I'm going to drop some links here",
+      "created_at": "2020-04-23T18:05:58.527Z"
+    },
+    {
+      "text": "again I set up some links here for you that service Integrations episode that I talked about is there there should be a comparison between the two in there maybe not if not we can get that from a previous episode",
+      "created_at": "2020-04-23T18:06:14.549Z"
+    },
+    {
+      "text": "the pricing I haven't talked about pricing at the pricing on standard workflows is priced differently from Express workflows last we talked about Express were closer price more like more like AWS Lambda functions where it's a number of executions and then the amount of ram you use times the duration of your execution standard work clothes are priced based on state transitions so as you move from one state to another through that workflow that is a state transition and its price at 2 and 1/2 cents per thousand State transitions to start",
+      "created_at": "2020-04-23T18:06:50.691Z"
+    },
+    {
+      "text": "so this callback pattern will go into where are we",
+      "created_at": "2020-04-23T18:06:58.551Z"
+    },
+    {
+      "text": "Fox",
+      "created_at": "2020-04-23T18:07:02.735Z"
+    },
+    {
+      "text": "so the Callback pattern is part of a service integration pattern if you remember if you were there for service Integrations we talked about even when you run a task state with an AWS Lambda function as a service integration",
+      "created_at": "2020-04-23T18:07:16.587Z"
+    },
+    {
+      "text": "with a task token our way of invoking the service integration asynchronously so your workflow processes through the preliminary states invokes that task and sends a token along with it and then stops execution until it gets a return right so you have some other process here and this is the the docks the step functions call back stocks in that link that I just gave you you have some process here so when you run this credit check right you send it into a q u send the task token which is specific to this execution of this workflow",
+      "created_at": "2020-04-23T18:07:53.527Z"
+    },
+    {
+      "text": "whatever it needs to do",
+      "created_at": "2020-04-23T18:07:56.603Z"
+    },
+    {
+      "text": "the offloading to a long-running process it can be anything but when it's complete it needs to call back to the state machine with that token and it needs to send 103 States and needs to either send a send text success to say that it's succeeded processing and you can move on and needs to send a send text failure to say something went wrong and you need to handle that",
+      "created_at": "2020-04-23T18:08:23.526Z"
+    },
+    {
+      "text": "flow or it can send a send task heartbeat",
+      "created_at": "2020-04-23T18:08:28.573Z"
+    },
+    {
+      "text": "play to prevent timeouts or frozen executions",
+      "created_at": "2020-04-23T18:08:33.572Z"
+    },
+    {
+      "text": "you can require that your task send",
+      "created_at": "2020-04-23T18:08:35.647Z"
+    },
+    {
+      "text": "read every 10 minutes for example and in that case then you would want your working task to send a heartbeat every 5 minutes just to make sure it doesn't",
+      "created_at": "2020-04-23T18:08:42.685Z"
+    },
+    {
+      "text": "you probably don't want that involved if",
+      "created_at": "2020-04-23T18:08:46.592Z"
+    },
+    {
+      "text": "waiting for human interaction here",
+      "created_at": "2020-04-23T18:08:49.542Z"
+    },
+    {
+      "text": "is one of the major use cases so",
+      "created_at": "2020-04-23T18:08:52.556Z"
+    },
+    {
+      "text": "again a major difference in the standard workflow is it that execution can continue for up to one year or as it's only 5 minutes for an Express workflow",
+      "created_at": "2020-04-23T18:09:03.525Z"
+    },
+    {
+      "text": "so when you add a year of execution time you enable whole new category of uses right so you can enable manual revision by a human operator with escalation and conflict resolution in time for people to schedule a meeting to talk about it and all of these things right can be enabled you can pull a human into the loop to make decisions that probably aren't going to meet that 5 minute threshold so that's one major use case and it's what we're going to simulate today with our simulator",
+      "created_at": "2020-04-23T18:09:34.565Z"
+    },
+    {
+      "text": "another use case is long-running Task if you have data ingestion tasks that can easily take longer than 5 minutes well you can't really use an Express workflow for that so it's standard workflow is a good model for that a good choice thanks to Doug topping for hitting those links there and share them for everybody",
+      "created_at": "2020-04-23T18:09:54.535Z"
+    },
+    {
+      "text": "all sensitive tasks that I kind of hit on this a little bit but if you're running some sort of",
+      "created_at": "2020-04-23T18:10:00.577Z"
+    },
+    {
+      "text": "but you've already set up using",
+      "created_at": "2020-04-23T18:10:03.535Z"
+    },
+    {
+      "text": "spot instances on AWS ec2 Amazon ec2 this allows you to wait until you can acquire instances at the price that meets your parameters and then run that task and then once it's complete send the completion back so it's for non time-sensitive tasks and a lot of your complex major business process workflows involve face",
+      "created_at": "2020-04-23T18:10:27.521Z"
+    },
+    {
+      "text": "so what services",
+      "created_at": "2020-04-23T18:10:31.593Z"
+    },
+    {
+      "text": "if we go back here",
+      "created_at": "2020-04-23T18:10:35.654Z"
+    },
+    {
+      "text": "what cities are the service integration patterns give me II find it on this page cuz it is on this page there's a little table",
+      "created_at": "2020-04-23T18:10:45.102Z"
+    },
+    {
+      "text": "nope nope that's not it",
+      "created_at": "2020-04-23T18:10:46.514Z"
+    },
+    {
+      "text": "I think it's in those blanks",
+      "created_at": "2020-04-23T18:10:56.540Z"
+    },
+    {
+      "text": "okay step-function service Integrations there we go in that link if you want this I'll put it in the chat here",
+      "created_at": "2020-04-23T18:11:04.531Z"
+    },
+    {
+      "text": "snsi",
+      "created_at": "2020-04-23T18:11:07.597Z"
+    },
+    {
+      "text": "so it's this pattern here this wait for callback. Wait for task token and their 5 yep thanks.",
+      "created_at": "2020-04-23T18:11:18.608Z"
+    },
+    {
+      "text": "services or service",
+      "created_at": "2020-04-23T18:11:20.737Z"
+    },
+    {
+      "text": "reasons that support this wait for callback to call",
+      "created_at": "2020-04-23T18:11:23.512Z"
+    },
+    {
+      "text": "pattern that you see here AWS Lambda AWS fargate or ECS Amazon SNS Amazon sqs and AWS step functions itself so you can call another workflow and wait for it to complete processing and come back so you've got this this concept of nested work clothes that you can work with here",
+      "created_at": "2020-04-23T18:11:45.654Z"
+    },
+    {
+      "text": "again just to point out here in the docks if you look at Express workflows none of them support this wait for callback pattern again because of that 5-minute limitation it doesn't really make sense to do so",
+      "created_at": "2020-04-23T18:11:56.548Z"
+    },
+    {
+      "text": "so this wait for task token",
+      "created_at": "2020-04-23T18:12:02.519Z"
+    },
+    {
+      "text": "is the key to making all of this happen and what it means is when you look at this pattern service integration patterns here I got to sneeze coming I'm trying to fight it off",
+      "created_at": "2020-04-23T18:12:14.626Z"
+    },
+    {
+      "text": "I got that microphone muted in time this is a this is a challenge with doing a livestream as I can just cut that out you could see the the violence that is my sneeze but hopefully I kept you from the the sound effects if you look for ways to call an integrated service there's a wait for callback with the task token and again that's what we've got here and you're just a pending this wait for task token to the task a RN in your state does that mean so we got to head this time and set this up already",
+      "created_at": "2020-04-23T18:12:49.552Z"
+    },
+    {
+      "text": "and I'll show you this real quick and then we'll back into what we've built here",
+      "created_at": "2020-04-23T18:12:54.822Z"
+    },
+    {
+      "text": "so",
+      "created_at": "2020-04-23T18:12:59.647Z"
+    },
+    {
+      "text": "when we call this sinful normalization State here",
+      "created_at": "2020-04-23T18:13:04.553Z"
+    },
+    {
+      "text": "this is an example of an sqs service integration so we're calling the sqs send message Api call with the parameters that it needs Kayak Out the mutant I'm okay thanks appreciate good looking out",
+      "created_at": "2020-04-23T18:13:20.564Z"
+    },
+    {
+      "text": "see here at the end of this a RN",
+      "created_at": "2020-04-23T18:13:24.648Z"
+    },
+    {
+      "text": "did this. Wait for task token that's the same execution pattern for all five of those services for land of fargate smss to us and step functions so when you do that what's going to happen is your context object in your workflow execution which is represented by this double dollar sign gets a token appended to it and that's essentially a universal unique identifier that allows the step-function service to figure out where the route those calls back when you're done",
+      "created_at": "2020-04-23T18:13:57.606Z"
+    },
+    {
+      "text": "syntax here again is the jsonpath syntax if this is a little bit confusing don't worry I've given you everything you need in the code here there's a also drop a link here for those of you who want to learn more and very importantly",
+      "created_at": "2020-04-23T18:14:16.580Z"
+    },
+    {
+      "text": "Tuesday on the 8th of Yes Channel I'm going to be doing in episode entirely dedicated to Json pack so your results path your output path input path how to handle all of that in AWS step functions to join for that same time a TBS channel Tuesday",
+      "created_at": "2020-04-23T18:14:30.561Z"
+    },
+    {
+      "text": "but that's all you have to do to make this task stop and start executor stop and wait for a return right",
+      "created_at": "2020-04-23T18:14:41.657Z"
+    },
+    {
+      "text": "and then again when you talk about your I need to get here and go to a the simulator that we built when you talk about the task itself it needs to call this send task success or send task failure based on whatever happens in order to process that call and unblock that workflow so that it continues to execute",
+      "created_at": "2020-04-23T18:15:06.703Z"
+    },
+    {
+      "text": "so",
+      "created_at": "2020-04-23T18:15:09.531Z"
+    },
+    {
+      "text": "I'm going to take us back to the diagram real quick back to the architecture",
+      "created_at": "2020-04-23T18:15:16.553Z"
+    },
+    {
+      "text": "and we're going to talk about what we're going to do today if you remember we went through these events and we got to account created was one of the events that we had and so the workflow that we're going to build assumes that when an account is created a user signs out that's a fully automatic process and then that event is put onto the event bus and there's three things that we need to do or really two things we need to do one we want to put that data into our CRM whatever customer relationship management system is which is going to be a third party thing gets back and ID from that and then we want to have a human scrub that data right take a look at it to see does this look like a real person or their fraud indicators did somebody put their vulgar language for their name does the address resolve etc etc right we want we're just getting started we need to figure out the bucket people that we",
+      "created_at": "2020-04-23T18:16:09.886Z"
+    },
+    {
+      "text": "so we're going to take that response that we get from the CRM and we're going to put an object into a Amazon sqs queue",
+      "created_at": "2020-04-23T18:16:17.569Z"
+    },
+    {
+      "text": "what would happen then is that some sort of application would pull those out and present them to a customer service rep for 2 a.m.",
+      "created_at": "2020-04-23T18:16:24.554Z"
+    },
+    {
+      "text": "success agent whatever the however you structure in your business until they can actually process it with the rest of your application and then once they click okay it's been cleaned or proved then that application will call back so that's the simulator that we've written and deployed already to to show how that works with Justin and then we published that account cleaned or account normalized event back onto the event bus so there's a couple things we need to do here again we need to create a new workflow",
+      "created_at": "2020-04-23T18:16:58.563Z"
+    },
+    {
+      "text": "rule that attaches to our",
+      "created_at": "2020-04-23T18:17:01.524Z"
+    },
+    {
+      "text": "bus and routes the account created events to that workflow we need to create an sqsq and we need to create the simulator for putting the docks for putting the process tasks unblocking them",
+      "created_at": "2020-04-23T18:17:17.544Z"
+    },
+    {
+      "text": "we want some way to make sure that that final event gets called so we're going to do that with another roll that just route things to cloudwatch logs today is going to be a shorter episode I've actually gone ahead and written all of this code I think it's complicated enough it might make more sense to just publish it push it up and let you see so we're going to walk through what it looks like and how it works",
+      "created_at": "2020-04-23T18:17:39.519Z"
+    },
+    {
+      "text": "so if you remember we had our infrastructure here that created our vent bus we don't need to mess with that right now we've got an event bus who got the function to put things back onto it",
+      "created_at": "2020-04-23T18:17:51.540Z"
+    },
+    {
+      "text": "everything here is going to happen again inside customer previously we built that one Express workflow here",
+      "created_at": "2020-04-23T18:17:59.614Z"
+    },
+    {
+      "text": "and that's still here under the sea Express workflow example that captures the expired subscription event so this is all still here we just got ahead and up here now we've created that q and this is all it takes is three lines of cloudformation to create that q and then we can reference it by this topic or by The Logical name we need to create this I am Merle with permissions to send messages to that Q which we've done",
+      "created_at": "2020-04-23T18:18:29.519Z"
+    },
+    {
+      "text": "our rule is here",
+      "created_at": "2020-04-23T18:18:33.742Z"
+    },
+    {
+      "text": "to that same parameter for the event bus",
+      "created_at": "2020-04-23T18:18:37.573Z"
+    },
+    {
+      "text": "Samuel notice were looking for the account create event last time we were looking for that subscription",
+      "created_at": "2020-04-23T18:18:42.571Z"
+    },
+    {
+      "text": "so this one's only going to capture that single event",
+      "created_at": "2020-04-23T18:18:47.573Z"
+    },
+    {
+      "text": "the target here is this new workflow",
+      "created_at": "2020-04-23T18:18:51.594Z"
+    },
+    {
+      "text": "Heidi and the roll we can reuse that roll from last time by adding the permission to invoke our new workflow all right so the meat of this",
+      "created_at": "2020-04-23T18:19:03.677Z"
+    },
+    {
+      "text": "tide this normalize account workflow",
+      "created_at": "2020-04-23T18:19:06.857Z"
+    },
+    {
+      "text": "if we look at our definition string here we see that we have three states",
+      "created_at": "2020-04-23T18:19:12.560Z"
+    },
+    {
+      "text": "state is as we said add to CRM",
+      "created_at": "2020-04-23T18:19:15.537Z"
+    },
+    {
+      "text": "and because this is just an example we are mocking this up",
+      "created_at": "2020-04-23T18:19:19.559Z"
+    },
+    {
+      "text": "using Pass State",
+      "created_at": "2020-04-23T18:19:22.570Z"
+    },
+    {
+      "text": "what's an apostate just allows us to remove a door modify date of it's in the state of our workflow execution in this case we're just creating a result with a faked customer ID that we've generated here and we're adding it into the detail object which is the part of the state that contains our original event under CRM data we do this so that when this event goes back onto the event bus it keeps the old data as well as a new data how you design this is going to be entirely up to you and you may even want to add a like a transformation State as your last state to prepare everything that you want",
+      "created_at": "2020-04-23T18:20:02.540Z"
+    },
+    {
+      "text": "from there we send it out for normalization",
+      "created_at": "2020-04-23T18:20:05.550Z"
+    },
+    {
+      "text": "and this is that manual tasks that we talked about where we're putting this into the sqsq that we've created and then we're waiting for the task token and to do that you see our service integration takes a qurl where we referenced this perimeter here the account creation Q",
+      "created_at": "2020-04-23T18:20:26.521Z"
+    },
+    {
+      "text": "take that test token again",
+      "created_at": "2020-04-23T18:20:28.576Z"
+    },
+    {
+      "text": "retrieve from the context",
+      "created_at": "2020-04-23T18:20:32.642Z"
+    },
+    {
+      "text": "Texas different from the state the state is ours to manipulate as we see fit.",
+      "created_at": "2020-04-23T18:20:37.583Z"
+    },
+    {
+      "text": "take things out the context is the execution context around this invitation of this workflow so it gives us",
+      "created_at": "2020-04-23T18:20:47.589Z"
+    },
+    {
+      "text": "metadata about that invitation including the task token",
+      "created_at": "2020-04-23T18:20:52.520Z"
+    },
+    {
+      "text": "finally again will save the results of this back in our normalization in our in our detail field so that it gets passed into the next event",
+      "created_at": "2020-04-23T18:21:03.626Z"
+    },
+    {
+      "text": "find Publix that event",
+      "created_at": "2020-04-23T18:21:05.619Z"
+    },
+    {
+      "text": "it's the same as what we built last week's in fact the same function the public",
+      "created_at": "2020-04-23T18:21:09.544Z"
+    },
+    {
+      "text": "function that just takes a properly structured event bus sorry I've been Bridge event and puts it on to the event bus we specify so we give it this information we give it the source from the state we create a new detail type account normalize is where you got to be careful because if you put account created here you're going to get yourself in an infinite Loop so don't do that I've done that don't do that",
+      "created_at": "2020-04-23T18:21:36.543Z"
+    },
+    {
+      "text": "logic is just what we've been constructing is we passed through the workflow",
+      "created_at": "2020-04-23T18:21:40.552Z"
+    },
+    {
+      "text": "and then we're done right so let's go back to the console and visualize this",
+      "created_at": "2020-04-23T18:21:44.662Z"
+    },
+    {
+      "text": "bike here",
+      "created_at": "2020-04-23T18:21:47.695Z"
+    },
+    {
+      "text": "normalize account process",
+      "created_at": "2020-04-23T18:21:49.524Z"
+    },
+    {
+      "text": "we haven't run it yet",
+      "created_at": "2020-04-23T18:21:52.566Z"
+    },
+    {
+      "text": "pretty straightforward right",
+      "created_at": "2020-04-23T18:21:55.575Z"
+    },
+    {
+      "text": "what we've defined in our workflow here",
+      "created_at": "2020-04-23T18:21:58.539Z"
+    },
+    {
+      "text": "we added to the CRM simple normalization",
+      "created_at": "2020-04-23T18:22:01.671Z"
+    },
+    {
+      "text": "publish this account normalized event so here we see that everything is resolved",
+      "created_at": "2020-04-23T18:22:06.544Z"
+    },
+    {
+      "text": "with the details as expected we've got Orlando function in there this is great",
+      "created_at": "2020-04-23T18:22:12.613Z"
+    },
+    {
+      "text": "as I said I've already deployed all of this",
+      "created_at": "2020-04-23T18:22:16.561Z"
+    },
+    {
+      "text": "want to go back in",
+      "created_at": "2020-04-23T18:22:20.551Z"
+    },
+    {
+      "text": "once",
+      "created_at": "2020-04-23T18:22:22.564Z"
+    },
+    {
+      "text": "end-to-end to show you and they were going to make",
+      "created_at": "2020-04-23T18:22:25.559Z"
+    },
+    {
+      "text": "applications adding things to show ourselves what's happening",
+      "created_at": "2020-04-23T18:22:28.526Z"
+    },
+    {
+      "text": "first execution everything's already set up an impl",
+      "created_at": "2020-04-23T18:22:31.564Z"
+    },
+    {
+      "text": "what's going to happen is if going to run through to ultimately putting that event back onto the bus but we're not going to see it because we're not consuming it anywhere so in fact it may be more useful to go back over here and show you how to create an event",
+      "created_at": "2020-04-23T18:22:47.593Z"
+    },
+    {
+      "text": "right to create a rule",
+      "created_at": "2020-04-23T18:22:49.565Z"
+    },
+    {
+      "text": "that logs all the things",
+      "created_at": "2020-04-23T18:22:53.554Z"
+    },
+    {
+      "text": "Rinnegan an event pattern",
+      "created_at": "2020-04-23T18:22:57.598Z"
+    },
+    {
+      "text": "what do a I need to go back up there and fix that it's on our custom bus with a custom pattern",
+      "created_at": "2020-04-23T18:23:04.561Z"
+    },
+    {
+      "text": "Rihanna capture everything that's from",
+      "created_at": "2020-04-23T18:23:09.666Z"
+    },
+    {
+      "text": "our apps so if you remember all of those are structured this",
+      "created_at": "2020-04-23T18:23:15.606Z"
+    },
+    {
+      "text": "that should be enough we put it on there we select targets and you see you have a number of places you can send them but again when your building it's helpful to just create",
+      "created_at": "2020-04-23T18:23:30.586Z"
+    },
+    {
+      "text": "cloudwatch log group and send every event to that bus this means it'll capture these account created an account normalized will also capture our subscription expired events from last week so everything will go into our locks which helps us make sure that we know what's going on",
+      "created_at": "2020-04-23T18:23:47.668Z"
+    },
+    {
+      "text": "create right",
+      "created_at": "2020-04-23T18:23:51.601Z"
+    },
+    {
+      "text": "so when we come back over to here",
+      "created_at": "2020-04-23T18:23:54.594Z"
+    },
+    {
+      "text": "I believe yes it'll be us put",
+      "created_at": "2020-04-23T18:24:05.760Z"
+    },
+    {
+      "text": "filed events episode 3. Jason",
+      "created_at": "2020-04-23T18:24:10.540Z"
+    },
+    {
+      "text": "good no failures one event went in believe that open for a second and again just like last week's I'll show you what these I moved last week's events to hear and episode 2. Jason this will be published after I get this uploaded to YouTube",
+      "created_at": "2020-04-23T18:24:26.664Z"
+    },
+    {
+      "text": "and again here we just have an array of one object with that same Source its account created and then we've kept this versioning we've added a created viafield here so this will get be structured",
+      "created_at": "2020-04-23T18:24:41.580Z"
+    },
+    {
+      "text": "unmarshal into a json object",
+      "created_at": "2020-04-23T18:24:44.743Z"
+    },
+    {
+      "text": "so we can come back over here and",
+      "created_at": "2020-04-23T18:24:50.535Z"
+    },
+    {
+      "text": "start at the end",
+      "created_at": "2020-04-23T18:24:54.530Z"
+    },
+    {
+      "text": "and look at our cloudwatch logs",
+      "created_at": "2020-04-23T18:24:56.723Z"
+    },
+    {
+      "text": "we look at our law groups",
+      "created_at": "2020-04-23T18:24:59.530Z"
+    },
+    {
+      "text": "does any company one and thankfully",
+      "created_at": "2020-04-23T18:25:03.545Z"
+    },
+    {
+      "text": "smiled upon and right here we see",
+      "created_at": "2020-04-23T18:25:06.561Z"
+    },
+    {
+      "text": "that this event was",
+      "created_at": "2020-04-23T18:25:08.575Z"
+    },
+    {
+      "text": "made it all the way through that workflow right so we see that we have the detail that contains that customer ID and then we have the normalization results all the way back from where it was processed by the or where we simulated that human interaction",
+      "created_at": "2020-04-23T18:25:24.528Z"
+    },
+    {
+      "text": "are we can back up",
+      "created_at": "2020-04-23T18:25:26.633Z"
+    },
+    {
+      "text": "look at our workflow",
+      "created_at": "2020-04-23T18:25:29.580Z"
+    },
+    {
+      "text": "have one execution here and it did succeed",
+      "created_at": "2020-04-23T18:25:34.557Z"
+    },
+    {
+      "text": "this is the start input that we provided it",
+      "created_at": "2020-04-23T18:25:40.563Z"
+    },
+    {
+      "text": "and then you see inside the detail object we added this new CRM data object in that state as expected",
+      "created_at": "2020-04-23T18:25:50.612Z"
+    },
+    {
+      "text": "when it went out for normalization",
+      "created_at": "2020-04-23T18:25:55.552Z"
+    },
+    {
+      "text": "got it back with these normalization results with just come from that JavaScript function that",
+      "created_at": "2020-04-23T18:26:00.531Z"
+    },
+    {
+      "text": "earlier so we can put whatever we want in there we just sent back a string to keep it simple",
+      "created_at": "2020-04-23T18:26:05.574Z"
+    },
+    {
+      "text": "and then we",
+      "created_at": "2020-04-23T18:26:08.576Z"
+    },
+    {
+      "text": "this event on the event is happening exactly the way that we would expect but we haven't really proven to ourselves that it's past right this just looks like a very quick synchronous invocation all the way through so we've got our Q here but it doesn't have any messages in it",
+      "created_at": "2020-04-23T18:26:28.530Z"
+    },
+    {
+      "text": "because we only sent one message and it's already been processed",
+      "created_at": "2020-04-23T18:26:32.570Z"
+    },
+    {
+      "text": "I want to do here is go back",
+      "created_at": "2020-04-23T18:26:34.547Z"
+    },
+    {
+      "text": "move I just put a q somewhere",
+      "created_at": "2020-04-23T18:26:39.576Z"
+    },
+    {
+      "text": "website for this close this without saying",
+      "created_at": "2020-04-23T18:26:42.625Z"
+    },
+    {
+      "text": "you want to do is go back AWS cloudformation delete stack stack name app 20-25 simulator I hope that's right",
+      "created_at": "2020-04-23T18:26:53.580Z"
+    },
+    {
+      "text": "it's what I've done is I've removed this simulation the simulation was just listening to the sqsq for messages and when it found messages processing them picking them up and saying okay some humans",
+      "created_at": "2020-04-23T18:27:09.812Z"
+    },
+    {
+      "text": "without this here what we expect to see is the step functions workflow begins processing",
+      "created_at": "2020-04-23T18:27:17.544Z"
+    },
+    {
+      "text": "exit to that wait for task token step put",
+      "created_at": "2020-04-23T18:27:20.564Z"
+    },
+    {
+      "text": "listen to The Q and pauses",
+      "created_at": "2020-04-23T18:27:23.680Z"
+    },
+    {
+      "text": "can we go over to the Q we expect to see one message there",
+      "created_at": "2020-04-23T18:27:27.627Z"
+    },
+    {
+      "text": "so our hypothesis is having remove the simulation that's where we're going to get to in the work clothes not going to conclude so let's check that out by putting another event onto the bus",
+      "created_at": "2020-04-23T18:27:40.551Z"
+    },
+    {
+      "text": "I said let me let me not tempt things let me go over here and make sure that that stack has finished",
+      "created_at": "2020-04-23T18:27:48.560Z"
+    },
+    {
+      "text": "deleting it's finished eating right",
+      "created_at": "2020-04-23T18:27:52.532Z"
+    },
+    {
+      "text": "we're going to come back here tour workflow we're going to see a second execution now",
+      "created_at": "2020-04-23T18:27:59.625Z"
+    },
+    {
+      "text": "but that event that single event on the event bus hooray we've got our event ID there",
+      "created_at": "2020-04-23T18:28:06.640Z"
+    },
+    {
+      "text": "and now when we refresh we see that it's running it hasn't succeeded already we can go back to cloudwatch",
+      "created_at": "2020-04-23T18:28:16.548Z"
+    },
+    {
+      "text": "and we see",
+      "created_at": "2020-04-23T18:28:18.701Z"
+    },
+    {
+      "text": "in this Law Group",
+      "created_at": "2020-04-23T18:28:20.538Z"
+    },
+    {
+      "text": "nothing yet",
+      "created_at": "2020-04-23T18:28:23.789Z"
+    },
+    {
+      "text": "which is interesting I would have expected to see the other one but maybe I just did something silly so we'll see",
+      "created_at": "2020-04-23T18:28:29.705Z"
+    },
+    {
+      "text": "but it's already invoked or step on",
+      "created_at": "2020-04-23T18:28:32.763Z"
+    },
+    {
+      "text": "and again if we refresh it's still just sitting here running",
+      "created_at": "2020-04-23T18:28:36.562Z"
+    },
+    {
+      "text": "now we go back to work you and refresh",
+      "created_at": "2020-04-23T18:28:40.527Z"
+    },
+    {
+      "text": "see that we have one message available",
+      "created_at": "2020-04-23T18:28:42.577Z"
+    },
+    {
+      "text": "I'm not going to view these messages because it makes amount available for other consumers",
+      "created_at": "2020-04-23T18:28:51.536Z"
+    },
+    {
+      "text": "we can do it I can prove it to you another way so we can delete messages here we start pulling and we see we've got this one message",
+      "created_at": "2020-04-23T18:29:00.610Z"
+    },
+    {
+      "text": "and this is beautiful right we've got this big task token in here that we've never seen before",
+      "created_at": "2020-04-23T18:29:08.771Z"
+    },
+    {
+      "text": "and the message",
+      "created_at": "2020-04-23T18:29:11.762Z"
+    },
+    {
+      "text": "then we got these message attributes that we can set as well",
+      "created_at": "2020-04-23T18:29:20.646Z"
+    },
+    {
+      "text": "so with this year",
+      "created_at": "2020-04-23T18:29:24.552Z"
+    },
+    {
+      "text": "let's close it and",
+      "created_at": "2020-04-23T18:29:26.703Z"
+    },
+    {
+      "text": "still available",
+      "created_at": "2020-04-23T18:29:28.552Z"
+    },
+    {
+      "text": "so if we go back and redeploy",
+      "created_at": "2020-04-23T18:29:32.580Z"
+    },
+    {
+      "text": "simulator",
+      "created_at": "2020-04-23T18:29:34.545Z"
+    },
+    {
+      "text": "that's basically the same as finally some Human coming in opening their workload for the day clicking through reviewing this and completing it right so let's just give ourselves a little Sam deployer I've already built this before and I've already done Sam deployed guided to get those parameters in there that we want we just got to wait for this function to be put up there create Event Source mapping in the role we just twiddle our thumbs for a little bit right",
+      "created_at": "2020-04-23T18:30:03.720Z"
+    },
+    {
+      "text": "any questions over here on what we've done so far",
+      "created_at": "2020-04-23T18:30:10.541Z"
+    },
+    {
+      "text": "it's important understand this simulator is just giving you a pattern for any arbitrarily long-running large",
+      "created_at": "2020-04-23T18:30:24.563Z"
+    },
+    {
+      "text": "slow or process that you want to put in there",
+      "created_at": "2020-04-23T18:30:27.633Z"
+    },
+    {
+      "text": "again it could be human-related it can be offloading thanks edj geek killing it appreciate appreciate the shout out there buddy",
+      "created_at": "2020-04-23T18:30:38.546Z"
+    },
+    {
+      "text": "things like moving data between are gaps networks right so you got to take some data put it onto some right once media take it to an air gap Network run it over there get some sort of response back come back and bring that response on think about like issuing root certificates or something where you never issued them from a connected computer nice hair thanks both of them",
+      "created_at": "2020-04-23T18:31:02.569Z"
+    },
+    {
+      "text": "but that's one example right where you physically have to move media via sneaker that from one side to another or again just",
+      "created_at": "2020-04-23T18:31:13.534Z"
+    },
+    {
+      "text": "just because you don't want it to continue until you hit a trigger this could be like a trade if you were doing Stockton wanted to wait for some sort of condition to be met and you think over the next 90 days this condition will be mad if not cancel the order at any time that that conditions met boom there you go and you continue executing the trade so that you know there's a lot of applications of this any arbitrarily long-running process that you want and now that this is redeployed up there because this was built to pull that Q in Sam I'll show you this real quick as well before we go check",
+      "created_at": "2020-04-23T18:31:51.644Z"
+    },
+    {
+      "text": "we built this simulation function to be invoked by",
+      "created_at": "2020-04-23T18:31:55.535Z"
+    },
+    {
+      "text": "not to that we gave it",
+      "created_at": "2020-04-23T18:31:58.533Z"
+    },
+    {
+      "text": "the moment we deployed it it started pulling that too and looking for messages and if messages were there to pick them up attempted execute and then return the the results of that execution back to the queue so it could either hold them or we drive them or clear them out of the queue right to the moment that we put it up there and started doing work that's great. Right to work I love it",
+      "created_at": "2020-04-23T18:32:21.588Z"
+    },
+    {
+      "text": "king shreeji king I don't know that's the challenge of pronouncing names on Twitch but I appreciate the thumbs up",
+      "created_at": "2020-04-23T18:32:29.626Z"
+    },
+    {
+      "text": "by the way I apologize if I mispronounce your name",
+      "created_at": "2020-04-23T18:32:32.617Z"
+    },
+    {
+      "text": "thumbs up",
+      "created_at": "2020-04-23T18:32:34.536Z"
+    },
+    {
+      "text": "Hoops so we go back here",
+      "created_at": "2020-04-23T18:32:37.533Z"
+    },
+    {
+      "text": "is that message that we had",
+      "created_at": "2020-04-23T18:32:40.537Z"
+    },
+    {
+      "text": "Seether no messages available in the messages in Flight that's super news that's awesome and we can go check",
+      "created_at": "2020-04-23T18:32:47.561Z"
+    },
+    {
+      "text": "list of our state machine Tata look at that it's succeeded.",
+      "created_at": "2020-04-23T18:32:52.531Z"
+    },
+    {
+      "text": "pretty much right when we deployed that land of function crazy",
+      "created_at": "2020-04-23T18:32:56.607Z"
+    },
+    {
+      "text": "see how that happened and then again by going back to cloudwatch here",
+      "created_at": "2020-04-23T18:33:01.544Z"
+    },
+    {
+      "text": "who got a new log stream here that shows us where this account normalized",
+      "created_at": "2020-04-23T18:33:08.551Z"
+    },
+    {
+      "text": "right",
+      "created_at": "2020-04-23T18:33:11.536Z"
+    },
+    {
+      "text": "I can see that that step-function was blocked in its execution waiting for that token to come back and again if you look back at our function",
+      "created_at": "2020-04-23T18:33:22.539Z"
+    },
+    {
+      "text": "where is my function",
+      "created_at": "2020-04-23T18:33:25.537Z"
+    },
+    {
+      "text": "you look back at that function right here is where we send that task success right so we just Parts the record body get that task token out of their send that task success back so again I want to highlight this links here that second link that I just dropped in the chat step functions callback example is the basis for the code that we have here it's almost identical I just made a couple tweets to it this is something that you can pull as well yourself and sort of think about how this works in your patterns",
+      "created_at": "2020-04-23T18:33:58.541Z"
+    },
+    {
+      "text": "I've shown you this 4S",
+      "created_at": "2020-04-23T18:34:01.535Z"
+    },
+    {
+      "text": "but this also works for lambdas",
+      "created_at": "2020-04-23T18:34:05.565Z"
+    },
+    {
+      "text": "you can",
+      "created_at": "2020-04-23T18:34:07.547Z"
+    },
+    {
+      "text": "the token to a Lambda task that invokes some other thing entirely right",
+      "created_at": "2020-04-23T18:34:13.544Z"
+    },
+    {
+      "text": "wait for it to return",
+      "created_at": "2020-04-23T18:34:16.545Z"
+    },
+    {
+      "text": "fargate for long-running container tasks or Amazon ECS SNS again if you wanted it to just be an email or an SMS that's like this is pending your approval click here to approve and they click it and it calls back great or step functions again for nested workflows so it's shree-g King",
+      "created_at": "2020-04-23T18:34:38.541Z"
+    },
+    {
+      "text": "appreciation",
+      "created_at": "2020-04-23T18:34:41.590Z"
+    },
+    {
+      "text": "and then also all of the downstream",
+      "created_at": "2020-04-23T18:34:44.728Z"
+    },
+    {
+      "text": "those can invoke so those aren't those are just ways of getting to the solution",
+      "created_at": "2020-04-23T18:34:48.664Z"
+    },
+    {
+      "text": "for you so",
+      "created_at": "2020-04-23T18:34:51.747Z"
+    },
+    {
+      "text": "I want to take us back we can have a look at what we've learned today we talked about standard workflows is more of a focus for this one other better for long running processes that connects to for up to a year and allow this arbitrarily long execution of estate in between without you paying for that Idol",
+      "created_at": "2020-04-23T18:35:12.614Z"
+    },
+    {
+      "text": "Goshen Christian Paul 00",
+      "created_at": "2020-04-23T18:35:15.703Z"
+    },
+    {
+      "text": "I need a little more detail from you if that's the question",
+      "created_at": "2020-04-23T18:35:18.730Z"
+    },
+    {
+      "text": "but",
+      "created_at": "2020-04-23T18:35:22.540Z"
+    },
+    {
+      "text": "again it's for an arbitrarily long execution we talked about the difference in pricing how it's based on state transition and not execution time so if this takes a year to complete still one state transition right you don't pay for a year of compute which nobody wants we talked about the Callback pattern and for those five service",
+      "created_at": "2020-04-23T18:35:44.629Z"
+    },
+    {
+      "text": "videos hard y'all for those five services that we",
+      "created_at": "2020-04-23T18:35:47.635Z"
+    },
+    {
+      "text": "it's just a matter of a pending. Wait for task token to the a RN in your task state in your step function",
+      "created_at": "2020-04-23T18:35:55.563Z"
+    },
+    {
+      "text": "and then you need to retire",
+      "created_at": "2020-04-23T18:35:58.558Z"
+    },
+    {
+      "text": "send task success send test failure or send task heartbeat intermittently to let it know that you're continuing to go and then we built we built an example here in our customer micro service that walks through a simple mocks up adding the user to CRM taking that information and letting a human clean it by d'Alene sometime in there and then putting that completion event back onto event bus so this gives you another pattern to use for longer running workflows in your 20-25 app we got a question",
+      "created_at": "2020-04-23T18:36:36.562Z"
+    },
+    {
+      "text": "yesco there for y'all apologize to that is it possible to invoke apps",
+      "created_at": "2020-04-23T18:36:40.536Z"
+    },
+    {
+      "text": "step functions are will it be invoked to sqs Lambda to appsync so as I understand it Amazon app sync is graphql as a service right am I am I mistaken is for something else so it's not like dynamodb where you can just write data to and retrieve data from using a service integration it doesn't necessarily yes good",
+      "created_at": "2020-04-23T18:37:06.777Z"
+    },
+    {
+      "text": "apology I'm on like a roll with mispronouncing name so I'm not going to try to pronounce her name but I appreciate the",
+      "created_at": "2020-04-23T18:37:11.609Z"
+    },
+    {
+      "text": "so you will need to add something in between to make that call out to appsync yes you would want to use an sqsq if you have volume or like back pressure concerns where you're not necessarily or you want to keep your parallelism low right so in that case you may want to put a q in between your workflow and your Lambda function",
+      "created_at": "2020-04-23T18:37:38.595Z"
+    },
+    {
+      "text": "low concurrency and you don't",
+      "created_at": "2020-04-23T18:37:41.588Z"
+    },
+    {
+      "text": "issue then you may be able to just call directly to a Lambda function your use case and your data will determine that",
+      "created_at": "2020-04-23T18:37:49.566Z"
+    },
+    {
+      "text": "appsync interact in fact it's a good point to go back and let's go over the service Integrations again",
+      "created_at": "2020-04-23T18:37:56.536Z"
+    },
+    {
+      "text": "service integration patterns of click-through he's too many times he would go so we don't have appsync here as a service integration yet",
+      "created_at": "2020-04-23T18:38:07.570Z"
+    },
+    {
+      "text": "and yes thanks to Edie jgeeks the right answer is",
+      "created_at": "2020-04-23T18:38:10.564Z"
+    },
+    {
+      "text": "got to Albee Al and a function",
+      "created_at": "2020-04-23T18:38:13.571Z"
+    },
+    {
+      "text": "these are the ones that are currently available at service Integrations and in knees with a checkbox or the one that we can use for wait for callback",
+      "created_at": "2020-04-23T18:38:23.553Z"
+    },
+    {
+      "text": "supposed to have a Timeout on the state or step functions itself just in case",
+      "created_at": "2020-04-23T18:38:27.555Z"
+    },
+    {
+      "text": "hear back that's absolutely right you may want to set a limit on it or maybe you have a long-running task but it's prone it's fragile right like it's prone to outages or you know collapsing and you need to restart it which happens with a lot of like industrial batch processing applications its realities",
+      "created_at": "2020-04-23T18:38:50.592Z"
+    },
+    {
+      "text": "case you want to do two things one you want to set a reasonable time out on how long it should take to complete or how long it should take until you want to restart it and then from the task itself you want to use that syntac heartbeat API call with the token to let the state machine or the workflow know that you're still alive and processing you're just not done that you're just not done yet",
+      "created_at": "2020-04-23T18:39:17.559Z"
+    },
+    {
+      "text": "we're invoking Lambda in the time out of that function is 5 minutes then how can we handle that as failed in Step function",
+      "created_at": "2020-04-23T18:39:31.566Z"
+    },
+    {
+      "text": "on your function is actually 15 minutes but if you set the timeout to 5 minutes and you handle that that's just a typical error handling flow in Step functions I will be addressing that are handling as a as a big Topic in a future episode of AWS step functions on the AWS channel on Twitch",
+      "created_at": "2020-04-23T18:39:55.541Z"
+    },
+    {
+      "text": "is errors are just worthless",
+      "created_at": "2020-04-23T18:39:57.586Z"
+    },
+    {
+      "text": "so whenever your error comes out whenever you have a task state or a service integration state",
+      "created_at": "2020-04-23T18:40:06.547Z"
+    },
+    {
+      "text": "it goes to one of two places right either success or failure and that failure isn't a thing it's another workflow you can make it as complex or as simple as you want there are things that will address in that episode like retries number of retries that you can use",
+      "created_at": "2020-04-23T18:40:24.568Z"
+    },
+    {
+      "text": "property on the the workflow as Doug points there",
+      "created_at": "2020-04-23T18:40:28.588Z"
+    },
+    {
+      "text": "that's for the individual task like if you want to force the state machine to time out whether or not the land of function X Out",
+      "created_at": "2020-04-23T18:40:38.564Z"
+    },
+    {
+      "text": "names of the state that she will only give that",
+      "created_at": "2020-04-23T18:40:40.542Z"
+    },
+    {
+      "text": "five minutes for execution the way that dog topping pointed out there",
+      "created_at": "2020-04-23T18:40:44.588Z"
+    },
+    {
+      "text": "and then yes 15 minutes and apologize for still only kind of getting your name right",
+      "created_at": "2020-04-23T18:40:50.542Z"
+    },
+    {
+      "text": "very hard in a text-based medium without hearing it I apologize I'll just stop saying it so I don't mean to offend but I appreciate your participation in",
+      "created_at": "2020-04-23T18:40:57.581Z"
+    },
+    {
+      "text": "yeah",
+      "created_at": "2020-04-23T18:41:02.562Z"
+    },
+    {
+      "text": "rebuilt so that's that I'm going to put that thang you screen out but I'm",
+      "created_at": "2020-04-23T18:41:06.599Z"
+    },
+    {
+      "text": "where you at this is Jocelyn if you want to grab my Twitter and follow me there send any questions you have via DM again I'm looking I don't see any missed messages here Christian fall 00 from Lambda function I didn't really get a clarification on that if you had another question on that let me know if you do",
+      "created_at": "2020-04-23T18:41:28.545Z"
+    },
+    {
+      "text": "anybody else anything else Bueller Bueller that's probably copyrighted I do not have the rights to use that maybe it's like maybe it's okay because it's in you know everybody knows it it's derivative work",
+      "created_at": "2020-04-23T18:41:43.597Z"
+    },
+    {
+      "text": "the catch in the task with States. Timeout error that's correct yes",
+      "created_at": "2020-04-23T18:41:49.598Z"
+    },
+    {
+      "text": "in general my-my-my Eros migrator are philosophy of Step functions is never handle an air inside a task or Lambda throw it out and use that catch pattern to or an error State depending on how you're doing it to send yourself down a non a happy path workflow so that you can have complex logic around it but again remember this logic in your state machine is declarative",
+      "created_at": "2020-04-23T18:42:13.596Z"
+    },
+    {
+      "text": "it's it's like a salt problem right you're not introducing errors you're not introducing dependencies",
+      "created_at": "2020-04-23T18:42:19.600Z"
+    },
+    {
+      "text": "run Ducks thank you rob no thank you",
+      "created_at": "2020-04-23T18:42:24.644Z"
+    },
+    {
+      "text": "being here and I probably mispronounce your name to I should just stop trying I apologize",
+      "created_at": "2020-04-23T18:42:28.561Z"
+    },
+    {
+      "text": "but I appreciate you being here",
+      "created_at": "2020-04-23T18:42:31.544Z"
+    },
+    {
+      "text": "Hilltop in any pattern on how to force a continue when a step function is blocked on a weight",
+      "created_at": "2020-04-23T18:42:38.652Z"
+    },
+    {
+      "text": "I would argue that in process modeling you cannot do that",
+      "created_at": "2020-04-23T18:42:49.607Z"
+    },
+    {
+      "text": "I got yours right good to know I would argue in process modeling you cannot do that",
+      "created_at": "2020-04-23T18:42:54.582Z"
+    },
+    {
+      "text": "can time it out",
+      "created_at": "2020-04-23T18:42:58.548Z"
+    },
+    {
+      "text": "that's that time out and decide to continue with some subset of your data you can use the parallel state to execute the other processes that can execute concurrently but when you get to a point where you need that data from the timed out State you're not going to have that data available to you so you need to have some sort of pattern that has decided what to do and whether that's using the time out to add it back to a dead letter queue or something like that to read drive it later to send it off to another manual inspection workflow",
+      "created_at": "2020-04-23T18:43:33.563Z"
+    },
+    {
+      "text": "I would argue that you you can't really continue from a timeout",
+      "created_at": "2020-04-23T18:43:39.647Z"
+    },
+    {
+      "text": "on anything that depends on it",
+      "created_at": "2020-04-23T18:43:41.562Z"
+    },
+    {
+      "text": "make sense",
+      "created_at": "2020-04-23T18:43:44.704Z"
+    },
+    {
+      "text": "trunk out time out a heartbeat in seconds right that's",
+      "created_at": "2020-04-23T18:43:48.649Z"
+    },
+    {
+      "text": "that's the",
+      "created_at": "2020-04-23T18:43:51.571Z"
+    },
+    {
+      "text": "have the date of it that's the way to force it to not wait anymore",
+      "created_at": "2020-04-23T18:43:54.684Z"
+    },
+    {
+      "text": "is buy timing out inside that single",
+      "created_at": "2020-04-23T18:43:57.545Z"
+    },
+    {
+      "text": "state which we didn't cover here we can go back to that",
+      "created_at": "2020-04-23T18:44:03.572Z"
+    },
+    {
+      "text": "give me an example of this real quick",
+      "created_at": "2020-04-23T18:44:07.610Z"
+    },
+    {
+      "text": "create a new Step function State machine",
+      "created_at": "2020-04-23T18:44:10.546Z"
+    },
+    {
+      "text": "going to do that you always do that when I'm on here and I don't know why",
+      "created_at": "2020-04-23T18:44:14.601Z"
+    },
+    {
+      "text": "whatever was past 8 in there cuz it doesn't matter what we're doing and we want a",
+      "created_at": "2020-04-23T18:44:25.592Z"
+    },
+    {
+      "text": "SQ ask task State give me the parameter for the time out it's going to be",
+      "created_at": "2020-04-23T18:44:35.720Z"
+    },
+    {
+      "text": "I think timeout seconds so again this is a tool kit for visual studio code huge obstacle AWS step functions team for adding this so timeout seconds we see if the task runs longer than the specified seconds to State fails with the states that timeout error name which we can then catch and send through that workflow what do we do when it times out that's something that your analyst will work with you on to determine what that workflow should look like right if not provided the default is very large number that runs for a very long time to count begins after the task has been started for example when activity started Orlando function started or logged in the execution of it history so",
+      "created_at": "2020-04-23T18:45:16.589Z"
+    },
+    {
+      "text": "use the AWS toolkit for visual studio code if you're in Visual Studio code people please",
+      "created_at": "2020-04-23T18:45:21.591Z"
+    },
+    {
+      "text": "it helps a lot",
+      "created_at": "2020-04-23T18:45:24.804Z"
+    },
+    {
+      "text": "cut your grass skirt is it better to use a retry or a call back in order to wait for Lambda to process an HTTP API call",
+      "created_at": "2020-04-23T18:45:35.819Z"
+    },
+    {
+      "text": "so",
+      "created_at": "2020-04-23T18:45:38.589Z"
+    },
+    {
+      "text": "if your HTTP API is calling your Lambda function directly then you're not going to have an Express workflow in there that's a different oh wait I think you mean if you got a downstream HTTP API okay so you've got your workflow executing part of your workflow is call out to ask whether that's like a payment processor credit check or something like that is it better to use a retry or call back in order to wait for a Lambda to process an HTTP API call I would say that those are",
+      "created_at": "2020-04-23T18:46:12.591Z"
+    },
+    {
+      "text": "put out both right I wouldn't handle the retry inside the Lambda function here's why",
+      "created_at": "2020-04-23T18:46:18.731Z"
+    },
+    {
+      "text": "the whole point of using your",
+      "created_at": "2020-04-23T18:46:22.575Z"
+    },
+    {
+      "text": "step functions workflow is to Orchestra",
+      "created_at": "2020-04-23T18:46:24.566Z"
+    },
+    {
+      "text": "this process so let your tasks do one thing especially if it's a Lambda function your Lambda function should take the input attempt to authorize it and return the results and that's it and if that resulted failure to return I couldn't do it because then your logic for retries is lifted out of that land of function and if that's a part of your business process right retry it to three times whatever your Lambda function is just it's a technical detail implementation",
+      "created_at": "2020-04-23T18:46:56.551Z"
+    },
+    {
+      "text": "the business analyst doesn't care about",
+      "created_at": "2020-04-23T18:46:58.637Z"
+    },
+    {
+      "text": "for me you just want to attempt it one time and then you can send that send task failure result back if if that's what you're waiting on and then you catch that event in your task State and set your retry policy in there",
+      "created_at": "2020-04-23T18:47:15.606Z"
+    },
+    {
+      "text": "52 triangle yes thanks touring-l for the solution",
+      "created_at": "2020-04-23T18:47:21.554Z"
+    },
+    {
+      "text": "appreciate people helping people hear any other questions I can answer for anybody otherwise I'm just going to wrap it up I'll get this coat up as soon as I can I'll get this video up on YouTube shortly after again let me drop some docks for you today let me drop the repo for you today let me drop some links for you from today's episode",
+      "created_at": "2020-04-23T18:47:47.582Z"
+    },
+    {
+      "text": "transitions in a step-function to Ellicott City",
+      "created_at": "2020-04-23T18:47:51.621Z"
+    },
+    {
+      "text": "that cost is actually two and a half cents per thousand State transitions",
+      "created_at": "2020-04-23T18:47:56.743Z"
+    },
+    {
+      "text": "be careful not to have a very frequent test transition such as in a tight Loop absolutely and this is why exponential back-off is your friend and is built into work clothes so set that factor remember to the very small number becomes a very big number very quickly which will save you from spending a lot of money so make sure you set a smart retry policy don't retry it every second geek ask is there a place where I can see all these videos funny you should ask my friend because there is a place where you can see all these videos and I'm going to click that link right now",
+      "created_at": "2020-04-23T18:48:34.583Z"
+    },
+    {
+      "text": "that's the AWS serverless YouTube channel",
+      "created_at": "2020-04-23T18:48:37.590Z"
+    },
+    {
+      "text": "are these videos as well as several by my esteemed colleague edj geek I think I said his name wrong earlier I was going to go all episode without mentioning it and then I just did it wrong so I have to mention it",
+      "created_at": "2020-04-23T18:48:48.635Z"
+    },
+    {
+      "text": "AWS serverless YouTube channel I'd encourage you to subscribe that's where you can get sessions with Sam happy little apis app 2025 AWS step functions all this content they were putting out there for y'all in addition to publicly available talks webinars things like that they all go up there right so if we have video content that's where it lands that's where it lives",
+      "created_at": "2020-04-23T18:49:13.566Z"
+    },
+    {
+      "text": "really appreciate it if you would follow me here on Twitch",
+      "created_at": "2020-04-23T18:49:18.618Z"
+    },
+    {
+      "text": "subscribing like a weird thing follow me",
+      "created_at": "2020-04-23T18:49:21.672Z"
+    },
+    {
+      "text": "PJ McGee that's a great domain name thank you very much you think that's great check out Rob Sutter. TV Alexa bring you right back here so I can session",
+      "created_at": "2020-04-23T18:49:30.546Z"
+    },
+    {
+      "text": "add the vowels you come to this channel if you take out the vowels that's a URL shortener by edj geek here in the channel and that same YouTube channel has links to the videos on how to build that URL shortener which doesn't even use AWS Lambda functions",
+      "created_at": "2020-04-23T18:49:47.604Z"
+    },
+    {
+      "text": "it's crazy fast and crazy convenience so if that's interesting check that out as well again my Twitter is up there please follow me on Twitter contact me there via dm with any questions that you have looking in the chat box I don't see any other questions knockbox thanks for joining everybody else who joined of sleep. Link / shorty yeah touring God thanks Rob great shows always appreciate the feedback great to have you here again if there's topics that you want check the cards on my channel to see what's coming up next in terms of episodes but there's a topic that you want to see that's missing let me know and there's enough interest and if I can figure it out then I'll do a show on it I'll do stream on it thanks everybody for joining it's been great I will see you next week",
+      "created_at": "2020-04-23T18:50:36.841Z"
+    }
+  ]
+}
